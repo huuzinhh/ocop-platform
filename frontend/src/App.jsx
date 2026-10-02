@@ -2,14 +2,15 @@ import React, { useState, useEffect } from 'react';
 import {
   Layout, Menu, Card, Row, Col, Tag, Typography, Rate, Button,
   Input, Select, Space, Spin, Alert, message, Avatar, Dropdown, Badge,
-  Modal, Divider
+  Modal, Divider, Popconfirm
 } from 'antd';
 import {
   ShopOutlined, EnvironmentOutlined, QrcodeOutlined,
   FileTextOutlined, CheckCircleOutlined, SyncOutlined,
   SearchOutlined, SafetyCertificateOutlined, UserOutlined,
   LogoutOutlined, CrownOutlined, StarFilled, ShoppingCartOutlined,
-  ShoppingOutlined, PlusCircleOutlined, HistoryOutlined
+  PlusCircleOutlined, HistoryOutlined, DeleteOutlined,
+  OrderedListOutlined
 } from '@ant-design/icons';
 import { ocopApi } from './api/ocopApi';
 import { useAuth } from './context/AuthContext';
@@ -18,6 +19,7 @@ import AuthModal from './components/AuthModal';
 import CartDrawer from './components/CartDrawer';
 import CheckoutModal from './components/CheckoutModal';
 import OrdersModal from './components/OrdersModal';
+import AdminOrdersModal from './components/AdminOrdersModal';
 import CreateProductModal from './components/CreateProductModal';
 
 const { Header, Content, Footer } = Layout;
@@ -41,6 +43,7 @@ function App() {
   const [cartDrawerOpen, setCartDrawerOpen] = useState(false);
   const [checkoutModalOpen, setCheckoutModalOpen] = useState(false);
   const [ordersModalOpen, setOrdersModalOpen] = useState(false);
+  const [adminOrdersModalOpen, setAdminOrdersModalOpen] = useState(false);
   const [createProductOpen, setCreateProductOpen] = useState(false);
 
   // Data States
@@ -120,6 +123,12 @@ function App() {
     },
     ...(isProducer() || isAdmin() ? [
       {
+        key: 'admin-orders',
+        label: 'Quản lý đơn hàng (HTX / Admin)',
+        icon: <OrderedListOutlined />,
+        onClick: () => setAdminOrdersModalOpen(true),
+      },
+      {
         key: 'create-product',
         label: 'Đăng bán sản phẩm OCOP',
         icon: <PlusCircleOutlined />,
@@ -174,16 +183,26 @@ function App() {
             ]}
           />
 
-          {/* Nút Đăng sản phẩm cho Producer / Admin */}
+          {/* Nút Quản lý & Đăng sản phẩm cho Producer / Admin */}
           {isLoggedIn && (isProducer() || isAdmin()) && (
-            <Button
-              type="primary"
-              icon={<PlusCircleOutlined />}
-              onClick={() => setCreateProductOpen(true)}
-              style={{ background: '#2e7d32', borderColor: '#4caf50', fontWeight: 'bold' }}
-            >
-              Đăng sản phẩm
-            </Button>
+            <Space>
+              <Button
+                type="default"
+                icon={<OrderedListOutlined />}
+                onClick={() => setAdminOrdersModalOpen(true)}
+                style={{ background: 'rgba(255,255,255,0.2)', color: '#fff', border: '1px solid rgba(255,255,255,0.4)', fontWeight: 'bold' }}
+              >
+                Quản lý đơn
+              </Button>
+              <Button
+                type="primary"
+                icon={<PlusCircleOutlined />}
+                onClick={() => setCreateProductOpen(true)}
+                style={{ background: '#2e7d32', borderColor: '#4caf50', fontWeight: 'bold' }}
+              >
+                Đăng sản phẩm
+              </Button>
+            </Space>
           )}
 
           {/* Icon Giỏ hàng kèm Badge số lượng */}
@@ -239,13 +258,13 @@ function App() {
             <Space size="middle">
               <CheckCircleOutlined style={{ color: '#52c41a', fontSize: 20 }} />
               <div>
-                <Text strong style={{ color: '#274916' }}>Trạng thái hệ thống (Tuần 3 — E-Commerce & Giỏ hàng):</Text>
+                <Text strong style={{ color: '#274916' }}>Trạng thái hệ thống (Tuần 3 — Hoàn thiện E-Commerce & Giỏ hàng):</Text>
                 <div style={{ fontSize: 13, color: '#389e0d' }}>
                   {healthLoading ? <Spin size="small" /> :
                     healthStatus?.status === 'UP' ? (
                       <span>
                         Backend: <b>UP (Port 8080)</b> | DB: <b>{healthStatus.database}</b> |
-                        Giỏ hàng & Đơn hàng: <b>Sẵn sàng ✓</b> |
+                        Giỏ hàng & Đơn hàng & Quản trị HTX: <b>Sẵn sàng ✓</b> |
                         User: <b>{isLoggedIn ? `${currentUser.fullName} (${currentUser.roles?.join(', ')})` : 'Chưa đăng nhập'}</b>
                       </span>
                     ) : (
@@ -431,6 +450,7 @@ function App() {
         onOrderSuccess={() => loadProducts(selectedStar, searchQuery)}
       />
       <OrdersModal open={ordersModalOpen} onClose={() => setOrdersModalOpen(false)} />
+      <AdminOrdersModal open={adminOrdersModalOpen} onClose={() => setAdminOrdersModalOpen(false)} />
       <CreateProductModal
         open={createProductOpen}
         onClose={() => setCreateProductOpen(false)}
