@@ -67,10 +67,13 @@ public class ProductService {
     private static final Pattern WHITESPACE = Pattern.compile("[\\s]");
 
     public static String toSlug(String input) {
-        String nowhitespace = WHITESPACE.matcher(input).replaceAll("-");
+        if (input == null) return "san-pham";
+        String converted = input.replace("đ", "d").replace("Đ", "D");
+        String nowhitespace = WHITESPACE.matcher(converted).replaceAll("-");
         String normalized = Normalizer.normalize(nowhitespace, Normalizer.Form.NFD);
         String slug = NONLATIN.matcher(normalized).replaceAll("");
-        return slug.toLowerCase(Locale.ENGLISH);
+        slug = slug.replaceAll("-+", "-").replaceAll("^-|-$", "");
+        return slug.isEmpty() ? "san-pham" : slug.toLowerCase(Locale.ENGLISH);
     }
 
     @Transactional
