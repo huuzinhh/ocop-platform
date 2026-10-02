@@ -10,11 +10,11 @@ INSERT INTO roles (id, name) VALUES
 ON CONFLICT (id) DO NOTHING;
 
 -- 2. Users (Mật khẩu mặc định là: 123456)
--- BCrypt hash của '123456' là: $2a$10$x8XQfFvV5i8G1P6Q0/0MReV4sIhzY2v7Z1hC41Gq1zM8S3X1xGjma
+-- BCrypt hash thực của '123456': $2a$10$KNYE2QbDpGX7Hx.eUEHhBu5idp6UdyHrxGOQ0ZqDWgFqpH7HtWoOO
 INSERT INTO users (id, username, email, password_hash, full_name, phone, status) VALUES
-(1, 'admin', 'admin@ocop.vn', '$2a$10$x8XQfFvV5i8G1P6Q0/0MReV4sIhzY2v7Z1hC41Gq1zM8S3X1xGjma', 'Quản trị viên Hệ thống OCOP', '0901234567', 'ACTIVE'),
-(2, 'producer_finho', 'finho@ocop.vn', '$2a$10$x8XQfFvV5i8G1P6Q0/0MReV4sIhzY2v7Z1hC41Gq1zM8S3X1xGjma', 'HTX Chè Shan Tuyết Fìn Hò', '0987654321', 'ACTIVE'),
-(3, 'customer_demo', 'customer@ocop.vn', '$2a$10$x8XQfFvV5i8G1P6Q0/0MReV4sIhzY2v7Z1hC41Gq1zM8S3X1xGjma', 'Nguyễn Văn Người Dùng', '0912345678', 'ACTIVE')
+(1, 'admin', 'admin@ocop.vn', '$2a$10$KNYE2QbDpGX7Hx.eUEHhBu5idp6UdyHrxGOQ0ZqDWgFqpH7HtWoOO', 'Quản trị viên Hệ thống OCOP', '0901234567', 'ACTIVE'),
+(2, 'producer_finho', 'finho@ocop.vn', '$2a$10$KNYE2QbDpGX7Hx.eUEHhBu5idp6UdyHrxGOQ0ZqDWgFqpH7HtWoOO', 'HTX Chè Shan Tuyết Fìn Hò', '0987654321', 'ACTIVE'),
+(3, 'customer_demo', 'customer@ocop.vn', '$2a$10$KNYE2QbDpGX7Hx.eUEHhBu5idp6UdyHrxGOQ0ZqDWgFqpH7HtWoOO', 'Nguyễn Văn Người Dùng', '0912345678', 'ACTIVE')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO user_roles (user_id, role_id) VALUES
@@ -88,3 +88,15 @@ INSERT INTO production_events (id, batch_id, event_type, event_name, description
 (2, 1, 'PROCESSING', 'Lên men và sao chè bằng chảo gang', 'Kiểm soát nhiệt độ chảo gang ở 90 độ C, vò cánh chè nhẹ nhàng giữ nguyên tuyết trắng.', 'Nghệ nhân Đặng Văn Nam', 1, '2026-09-10 14:00:00', '2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a', '0x2222e981249b6f87d3a2e3794b15a6b0c1e82347d8b5a7c29384b6f1a8e23902'),
 (3, 1, 'PACKAGING', 'Hút chân không & Dán tem truy xuất OCOP', 'Đóng gói vào túi thiếc 100g, hút chân không bảo quản hương vị tự nhiên và dán tem QR.', 'Xưởng đóng gói Fìn Hò', 1, '2026-09-11 09:00:00', '3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b', '0x3333e981249b6f87d3a2e3794b15a6b0c1e82347d8b5a7c29384b6f1a8e23903')
 ON CONFLICT (id) DO NOTHING;
+
+-- 9. Đồng bộ Sequences
+SELECT setval(pg_get_serial_sequence('roles', 'id'), COALESCE(max(id), 1)) FROM roles;
+SELECT setval(pg_get_serial_sequence('users', 'id'), COALESCE(max(id), 1)) FROM users;
+SELECT setval(pg_get_serial_sequence('locations', 'id'), COALESCE(max(id), 1)) FROM locations;
+SELECT setval(pg_get_serial_sequence('producers', 'id'), COALESCE(max(id), 1)) FROM producers;
+SELECT setval(pg_get_serial_sequence('categories', 'id'), COALESCE(max(id), 1)) FROM categories;
+SELECT setval(pg_get_serial_sequence('products', 'id'), COALESCE(max(id), 1)) FROM products;
+SELECT setval(pg_get_serial_sequence('ocop_certificates', 'id'), COALESCE(max(id), 1)) FROM ocop_certificates;
+SELECT setval(pg_get_serial_sequence('production_batches', 'id'), COALESCE(max(id), 1)) FROM production_batches;
+SELECT setval(pg_get_serial_sequence('production_events', 'id'), COALESCE(max(id), 1)) FROM production_events;
+

@@ -31,3 +31,10 @@ logging:
   level:
     com.ocop: DEBUG
     org.springframework.web: INFO
+
+# Cấu hình JWT Token (Secret 256-bit chuẩn HMAC SHA-256)
+app:
+  jwt:
+    secret: ${JWT_SECRET:404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970}
+    expiration-ms: ${JWT_EXPIRATION_MS:86400000} # 24 giờ
+
