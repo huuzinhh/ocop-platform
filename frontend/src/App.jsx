@@ -1,17 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import {
   Layout, Menu, Card, Row, Col, Tag, Typography, Rate, Button,
-  Input, Select, Space, Spin, Alert, message, Avatar, Dropdown, Badge
+  Input, Select, Space, Spin, Alert, message, Avatar, Dropdown, Badge,
+  Modal, Divider
 } from 'antd';
 import {
   ShopOutlined, EnvironmentOutlined, QrcodeOutlined,
   FileTextOutlined, CheckCircleOutlined, SyncOutlined,
   SearchOutlined, SafetyCertificateOutlined, UserOutlined,
-  LogoutOutlined, SettingOutlined, CrownOutlined, StarFilled
+  LogoutOutlined, CrownOutlined, StarFilled, ShoppingCartOutlined,
+  ShoppingOutlined, PlusCircleOutlined, HistoryOutlined
 } from '@ant-design/icons';
 import { ocopApi } from './api/ocopApi';
 import { useAuth } from './context/AuthContext';
+import { useCart } from './context/CartContext';
 import AuthModal from './components/AuthModal';
+import CartDrawer from './components/CartDrawer';
+import CheckoutModal from './components/CheckoutModal';
+import OrdersModal from './components/OrdersModal';
+import CreateProductModal from './components/CreateProductModal';
 
 const { Header, Content, Footer } = Layout;
 const { Title, Text, Paragraph } = Typography;
@@ -26,14 +33,23 @@ const getRoleBadge = (roles = []) => {
 };
 
 function App() {
-  const { currentUser, isLoggedIn, logout } = useAuth();
-  const [authModalOpen, setAuthModalOpen] = useState(false);
+  const { currentUser, isLoggedIn, logout, isProducer, isAdmin } = useAuth();
+  const { cartCount, addToCart } = useCart();
 
+  // Modal States
+  const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [cartDrawerOpen, setCartDrawerOpen] = useState(false);
+  const [checkoutModalOpen, setCheckoutModalOpen] = useState(false);
+  const [ordersModalOpen, setOrdersModalOpen] = useState(false);
+  const [createProductOpen, setCreateProductOpen] = useState(false);
+
+  // Data States
   const [healthStatus, setHealthStatus] = useState(null);
   const [healthLoading, setHealthLoading] = useState(true);
   const [products, setProducts] = useState([]);
   const [productsLoading, setProductsLoading] = useState(true);
   const [selectedStar, setSelectedStar] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [detailModalVisible, setDetailModalVisible] = useState(false);
 
@@ -74,6 +90,15 @@ function App() {
     message.success('Đã đăng xuất thành công');
   };
 
+  const handleAddToCart = async (item) => {
+    if (!isLoggedIn) {
+      setAuthModalOpen(true);
+      message.info('Vui lòng đăng nhập để mua đặc sản OCOP');
+      return;
+    }
+    await addToCart(item.id, 1);
+  };
+
   // Menu dropdown khi đã đăng nhập
   const userMenuItems = currentUser ? [
     {
@@ -87,12 +112,34 @@ function App() {
       disabled: true,
     },
     { type: 'divider' },
-    { key: 'profile', label: 'Thông tin tài khoản', icon: <UserOutlined /> },
-    { key: 'swagger', label: 'Swagger API Docs', icon: <FileTextOutlined />,
-      onClick: () => window.open('http://localhost:8080/swagger-ui.html', '_blank') },
+    {
+      key: 'orders',
+      label: 'Đơn hàng của tôi',
+      icon: <HistoryOutlined />,
+      onClick: () => setOrdersModalOpen(true),
+    },
+    ...(isProducer() || isAdmin() ? [
+      {
+        key: 'create-product',
+        label: 'Đăng bán sản phẩm OCOP',
+        icon: <PlusCircleOutlined />,
+        onClick: () => setCreateProductOpen(true),
+      }
+    ] : []),
+    {
+      key: 'swagger',
+      label: 'Swagger API Docs',
+      icon: <FileTextOutlined />,
+      onClick: () => window.open('http://localhost:8080/swagger-ui.html', '_blank'),
+    },
     { type: 'divider' },
-    { key: 'logout', label: 'Đăng xuất', icon: <LogoutOutlined />, danger: true,
-      onClick: handleLogout },
+    {
+      key: 'logout',
+      label: 'Đăng xuất',
+      icon: <LogoutOutlined />,
+      danger: true,
+      onClick: handleLogout,
+    },
   ] : [];
 
   const roleBadge = currentUser ? getRoleBadge(currentUser.roles) : null;
@@ -127,7 +174,30 @@ function App() {
             ]}
           />
 
-          {/* Khu vực người dùng */}
+          {/* Nút Đăng sản phẩm cho Producer / Admin */}
+          {isLoggedIn && (isProducer() || isAdmin()) && (
+            <Button
+              type="primary"
+              icon={<PlusCircleOutlined />}
+              onClick={() => setCreateProductOpen(true)}
+              style={{ background: '#2e7d32', borderColor: '#4caf50', fontWeight: 'bold' }}
+            >
+              Đăng sản phẩm
+            </Button>
+          )}
+
+          {/* Icon Giỏ hàng kèm Badge số lượng */}
+          <Badge count={cartCount} showZero={false} offset={[-2, 2]}>
+            <Button
+              shape="circle"
+              icon={<ShoppingCartOutlined style={{ fontSize: 20, color: '#1b5e20' }} />}
+              onClick={() => setCartDrawerOpen(true)}
+              style={{ background: '#ffd54f', border: 'none' }}
+              title="Xem giỏ hàng OCOP"
+            />
+          </Badge>
+
+          {/* Khu vực Người dùng */}
           {isLoggedIn ? (
             <Dropdown menu={{ items: userMenuItems }} trigger={['click']} placement="bottomRight">
               <Space style={{ cursor: 'pointer', padding: '4px 8px',
@@ -169,13 +239,13 @@ function App() {
             <Space size="middle">
               <CheckCircleOutlined style={{ color: '#52c41a', fontSize: 20 }} />
               <div>
-                <Text strong style={{ color: '#274916' }}>Trạng thái hệ thống (Tuần 2 — Auth & JWT):</Text>
+                <Text strong style={{ color: '#274916' }}>Trạng thái hệ thống (Tuần 3 — E-Commerce & Giỏ hàng):</Text>
                 <div style={{ fontSize: 13, color: '#389e0d' }}>
                   {healthLoading ? <Spin size="small" /> :
                     healthStatus?.status === 'UP' ? (
                       <span>
                         Backend: <b>UP (Port 8080)</b> | DB: <b>{healthStatus.database}</b> |
-                        Auth: <b>Spring Security 6 + JWT ✓</b> |
+                        Giỏ hàng & Đơn hàng: <b>Sẵn sàng ✓</b> |
                         User: <b>{isLoggedIn ? `${currentUser.fullName} (${currentUser.roles?.join(', ')})` : 'Chưa đăng nhập'}</b>
                       </span>
                     ) : (
@@ -198,15 +268,17 @@ function App() {
               Đặc Sản OCOP Vùng Miền
             </Title>
             <Text type="secondary">
-              Sản phẩm đạt chứng nhận OCOP 3★ – 5★ từ các Hợp tác xã toàn quốc
+              Sản phẩm đạt chứng nhận OCOP 3★ – 5★ từ các Hợp tác xã toàn quốc ({products.length} sản phẩm)
             </Text>
           </div>
           <Space wrap size="middle">
             <Search placeholder="Tìm kiếm đặc sản OCOP..." allowClear
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
               onSearch={(v) => loadProducts(selectedStar, v)}
               style={{ width: 260 }} prefix={<SearchOutlined />} />
             <Select placeholder="Lọc theo sao OCOP" style={{ width: 170 }} allowClear
-              onChange={(v) => { setSelectedStar(v); loadProducts(v, ''); }}>
+              onChange={(v) => { setSelectedStar(v); loadProducts(v, searchQuery); }}>
               <Option value={5}><StarFilled style={{ color: '#faad14' }} /> 5 Sao Quốc gia</Option>
               <Option value={4}><StarFilled style={{ color: '#faad14' }} /> 4 Sao Tỉnh</Option>
               <Option value={3}><StarFilled style={{ color: '#faad14' }} /> 3 Sao Tỉnh</Option>
@@ -232,7 +304,7 @@ function App() {
                     <div style={{ height: 200, overflow: 'hidden', position: 'relative', background: '#e8f5e9' }}>
                       <img alt={item.name} src={item.thumbnail}
                         style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                        onError={(e) => { e.target.src = 'https://placehold.co/300x200?text=OCOP'; }} />
+                        onError={(e) => { e.target.src = 'https://placehold.co/400x300?text=OCOP+Product'; }} />
                       <Tag color={item.ocopStarRating === 5 ? 'gold' : 'blue'}
                         icon={<StarFilled />}
                         style={{ position: 'absolute', top: 10, right: 10, fontWeight: 'bold' }}>
@@ -251,7 +323,7 @@ function App() {
                       style={{ fontSize: 13, marginTop: 8 }}>{item.description}</Paragraph>
                   </div>
                   <div style={{ marginTop: 12 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
                       <Text strong style={{ fontSize: 18, color: '#d32f2f' }}>
                         {Number(item.price).toLocaleString('vi-VN')} đ
                       </Text>
@@ -259,23 +331,25 @@ function App() {
                     </div>
                     <div style={{ fontSize: 12, color: '#555', marginBottom: 12 }}>
                       <EnvironmentOutlined style={{ color: '#1b5e20', marginRight: 4 }} />
-                      {item.producer?.location?.province || item.producer?.name}
+                      {item.producer?.location?.province || item.producer?.name || 'Việt Nam'}
                     </div>
                     <Space style={{ width: '100%' }}>
-                      <Button type="primary" block
-                        style={{ background: '#2e7d32', borderColor: '#2e7d32', borderRadius: 6 }}
-                        onClick={() => { setSelectedProduct(item); setDetailModalVisible(true); }}>
+                      <Button
+                        block
+                        onClick={() => { setSelectedProduct(item); setDetailModalVisible(true); }}
+                        style={{ borderRadius: 6 }}
+                      >
                         Chi tiết
                       </Button>
-                      {isLoggedIn ? (
-                        <Button icon={<QrcodeOutlined />}
-                          onClick={() => message.info('Tính năng giỏ hàng ở Tuần 3!')}
-                          style={{ borderRadius: 6 }} />
-                      ) : (
-                        <Button icon={<UserOutlined />}
-                          onClick={() => setAuthModalOpen(true)}
-                          style={{ borderRadius: 6 }} title="Đăng nhập để mua hàng" />
-                      )}
+                      <Button
+                        type="primary"
+                        icon={<ShoppingCartOutlined />}
+                        onClick={() => handleAddToCart(item)}
+                        style={{ background: '#1b5e20', borderColor: '#1b5e20', borderRadius: 6 }}
+                        title="Thêm vào giỏ hàng"
+                      >
+                        Chọn mua
+                      </Button>
                     </Space>
                   </div>
                 </Card>
@@ -292,8 +366,76 @@ function App() {
         </Text>
       </Footer>
 
-      {/* MODAL ĐĂNG NHẬP / ĐĂNG KÝ */}
+      {/* MODAL CHI TIẾT SẢN PHẨM */}
+      {selectedProduct && (
+        <Modal
+          open={detailModalVisible}
+          onCancel={() => setDetailModalVisible(false)}
+          footer={[
+            <Button key="close" onClick={() => setDetailModalVisible(false)}>Đóng</Button>,
+            <Button
+              key="buy"
+              type="primary"
+              icon={<ShoppingCartOutlined />}
+              style={{ background: '#1b5e20' }}
+              onClick={() => { handleAddToCart(selectedProduct); setDetailModalVisible(false); }}
+            >
+              Thêm vào giỏ hàng ({Number(selectedProduct.price).toLocaleString('vi-VN')} đ)
+            </Button>
+          ]}
+          width={640}
+          title={<Space><SafetyCertificateOutlined style={{ color: '#1b5e20' }} /><b>{selectedProduct.name}</b></Space>}
+        >
+          <img
+            src={selectedProduct.thumbnail}
+            alt={selectedProduct.name}
+            style={{ width: '100%', maxHeight: 280, objectFit: 'cover', borderRadius: 8, marginBottom: 16 }}
+            onError={(e) => { e.target.src = 'https://placehold.co/600x300?text=OCOP+Product'; }}
+          />
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+            <Tag color="gold" icon={<StarFilled />} style={{ fontSize: 14, padding: '4px 8px' }}>
+              Chứng nhận OCOP {selectedProduct.ocopStarRating}★
+            </Tag>
+            <Text strong style={{ fontSize: 22, color: '#d32f2f' }}>
+              {Number(selectedProduct.price).toLocaleString('vi-VN')} đ <Text type="secondary" style={{ fontSize: 14 }}>/{selectedProduct.unit}</Text>
+            </Text>
+          </div>
+          <Paragraph><b>Mô tả:</b> {selectedProduct.description}</Paragraph>
+          {selectedProduct.culturalStory && (
+            <Card size="small" style={{ background: '#f6ffed', borderColor: '#b7eb8f', marginTop: 12 }}>
+              <Text strong style={{ color: '#1b5e20' }}>📜 Câu chuyện di sản & Văn hóa OCOP:</Text>
+              <Paragraph style={{ margin: '6px 0 0', fontStyle: 'italic' }}>
+                "{selectedProduct.culturalStory}"
+              </Paragraph>
+            </Card>
+          )}
+          <Divider style={{ margin: '16px 0' }} />
+          <div style={{ fontSize: 13, color: '#555' }}>
+            <div><b>Cơ sở sản xuất:</b> {selectedProduct.producer?.name}</div>
+            <div><b>Địa chỉ:</b> {selectedProduct.producer?.location?.address}, {selectedProduct.producer?.location?.province}</div>
+            <div><b>Tồn kho khả dụng:</b> {selectedProduct.stockQuantity} {selectedProduct.unit}</div>
+          </div>
+        </Modal>
+      )}
+
+      {/* CÁC MODAL HỆ THỐNG */}
       <AuthModal open={authModalOpen} onClose={() => setAuthModalOpen(false)} />
+      <CartDrawer
+        open={cartDrawerOpen}
+        onClose={() => setCartDrawerOpen(false)}
+        onOpenCheckout={() => setCheckoutModalOpen(true)}
+      />
+      <CheckoutModal
+        open={checkoutModalOpen}
+        onClose={() => setCheckoutModalOpen(false)}
+        onOrderSuccess={() => loadProducts(selectedStar, searchQuery)}
+      />
+      <OrdersModal open={ordersModalOpen} onClose={() => setOrdersModalOpen(false)} />
+      <CreateProductModal
+        open={createProductOpen}
+        onClose={() => setCreateProductOpen(false)}
+        onSuccess={() => loadProducts(selectedStar, searchQuery)}
+      />
     </Layout>
   );
 }

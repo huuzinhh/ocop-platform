@@ -12,79 +12,77 @@
 ---
 
 ## Tuần 2: Xây dựng Backend, REST API, Authentication (Spring Security 6 + JWT) & Phân quyền RBAC
-
-### 1. Việc đã hoàn thành
-- [x] **Cấu hình Spring Security 6**:
-  - Triển khai `SecurityConfig` với chính sách Stateless `SessionCreationPolicy.STATELESS`.
-  - Tích hợp CORS cho phép Frontend truy cập với đầy đủ HTTP Methods (GET, POST, PUT, DELETE, OPTIONS).
-  - Vô hiệu hóa CSRF cho kiến trúc REST API không lưu trạng thái.
-  - Phân quyền theo vai trò (RBAC): `ROLE_CUSTOMER`, `ROLE_PRODUCER`, `ROLE_ADMIN`.
-- [x] **Xử lý Token JWT**:
-  - Tích hợp thư viện JJWT hiện đại (`io.jsonwebtoken` v0.12.6).
-  - Tạo `JwtTokenProvider` mã hóa chuẩn HMAC SHA-256 (khóa 256-bit), sinh token chứa Claims (`userId`, `email`, `fullName`, `roles`) với thời hạn 24 giờ.
-  - Tạo `JwtAuthenticationFilter` tự động chặn request, bóc tách `Authorization: Bearer <token>` và thiết lập `SecurityContext`.
-  - Tạo `JwtAuthenticationEntryPoint` trả về lỗi HTTP 401 Unauthorized dạng JSON chuẩn hóa.
-- [x] **Quản lý Tài khoản & Mã hóa Mật khẩu**:
-  - Tạo Entity `User` và `Role`, ánh xạ quan hệ nhiều - nhiều `@ManyToMany` qua bảng `user_roles`.
-  - Mã hóa mật khẩu bảo mật bằng thuật toán một chiều có muối `BCryptPasswordEncoder`.
-  - Đồng bộ và kiểm tra hash BCrypt thực tế cho 3 tài khoản demo:
-    - Quản trị viên: `admin` / `123456` (`ROLE_ADMIN`)
-    - Nhà sản xuất: `producer_finho` / `123456` (`ROLE_PRODUCER`)
-    - Khách hàng: `customer_demo` / `123456` (`ROLE_CUSTOMER`)
-  - Khắc phục lỗi lệch sequence tự tăng trong PostgreSQL sau khi import dữ liệu (`setval`).
-- [x] **Xây dựng REST API Xác thực (AuthController & AuthService)**:
-  - `POST /api/v1/auth/login`: Xác thực username/email + password, trả về JWT Token và DTO User.
-  - `POST /api/v1/auth/register`: Đăng ký tài khoản mới, kiểm tra trùng lặp và gán quyền theo lựa chọn (`CUSTOMER` hoặc `PRODUCER`).
-  - `GET /api/v1/auth/me`: Endpoint bảo vệ yêu cầu JWT Bearer Token, trả về hồ sơ tài khoản hiện tại.
-  - Kích hoạt tính năng xác thực Bearer Token trong Swagger UI (`OpenApiConfig`).
-- [x] **Tích hợp Xác thực lên Giao diện Frontend (React + Ant Design)**:
-  - Xây dựng `AuthContext` và hook `useAuth()` quản lý trạng thái đăng nhập, lưu token và user vào `localStorage`.
-  - Cập nhật `axiosClient.js` tự động đính kèm `Authorization: Bearer <token>` vào mọi yêu cầu.
-  - Tạo component `AuthModal.jsx` với giao diện đăng nhập và đăng ký 2 tab đẹp mắt, có hiển thị sẵn thông tin tài khoản mẫu.
-  - Cập nhật Header trong `App.jsx`: hiển thị Avatar, tên người dùng, Tag quyền hạn (`ROLE_ADMIN`, `ROLE_PRODUCER`, `ROLE_CUSTOMER`), menu dropdown và nút Đăng xuất.
-- [x] **Kiểm thử tự động & Nghiệm thu End-to-End**:
-  - Chạy kịch bản kiểm thử tự động `scripts/test_auth.ps1` kiểm tra toàn bộ chu trình (Login Admin -> Gọi /auth/me thành công -> Register người dùng mới -> Login người dùng mới thành công). Toàn bộ 4 test case đều đạt 100%.
-
-### 2. Các file quan trọng đã tạo / cập nhật trong Tuần 2
-- `backend/`:
-  - `pom.xml`: Thêm `spring-boot-starter-security` và `jjwt` (0.12.6).
-  - `src/main/resources/application.yml`: Cấu hình secret và expiration cho JWT.
-  - `src/main/java/com/ocop/entity/Role.java` & `User.java`: Entity JPA phân quyền và tài khoản.
-  - `src/main/java/com/ocop/repository/RoleRepository.java` & `UserRepository.java`.
-  - `src/main/java/com/ocop/security/`: `JwtTokenProvider`, `JwtAuthenticationFilter`, `JwtAuthenticationEntryPoint`, `UserPrincipal`, `CustomUserDetailsService`, `SecurityConfig`.
-  - `src/main/java/com/ocop/dto/auth/`: `LoginRequest`, `RegisterRequest`, `AuthResponse`, `UserDto`.
-  - `src/main/java/com/ocop/service/AuthService.java` & `controller/AuthController.java`.
-  - `src/main/java/com/ocop/config/OpenApiConfig.java` & `CorsConfig.java`.
-- `frontend/`:
-  - `src/context/AuthContext.jsx`: Quản lý state đăng nhập toàn cầu.
-  - `src/api/authApi.js`: Các hàm gọi API đăng ký, đăng nhập, me.
-  - `src/api/axiosClient.js`: Request interceptor gắn Bearer token.
-  - `src/components/AuthModal.jsx`: Modal đăng nhập / đăng ký.
-  - `src/App.jsx` & `src/main.jsx`: Tích hợp Header, Avatar và AuthProvider.
-- `scripts/`:
-  - `test_auth.ps1`: Kịch bản test tự động luồng xác thực và phân quyền.
-  - `sync_sequences.sql`: Khắc phục lỗi sequence ID tự tăng.
-
-### 3. Kết quả kiểm thử thực tế
-- **Login Admin**: Trả về `success: true`, mã JWT Bearer hợp lệ.
-- **Get Me**: Trả về đúng thông tin `admin` kèm quyền `ROLE_ADMIN`.
-- **Register**: Đăng ký người dùng `test_farmer_2376` thành công, lưu vào DB và gán quyền `ROLE_PRODUCER`.
-- **Login người dùng mới**: Đăng nhập ngay lập tức với tài khoản vừa đăng ký thành công.
-- **Frontend SPA**: Giao diện chạy mượt mà tại `http://localhost:5173`, popup Đăng nhập hoạt động chính xác.
+- [x] Đã hoàn thành 100% (SecurityConfig Stateless, JJWT 0.12.6, BCrypt, AuthController, AuthContext, AuthModal, kiểm thử tự động `test_auth.ps1`).
 
 ---
 
-## Kế hoạch Tiếp theo: Tuần 3 — Hoàn thiện Sản phẩm, Giỏ hàng, Đặt hàng & Thương mại điện tử
+## Tuần 3: Hoàn thiện Sản phẩm OCOP, Giỏ hàng, Đặt hàng & Thương mại điện tử
 
-Mục tiêu Tuần 3:
-1. **Quản lý Sản phẩm OCOP Nâng cao**:
-   - API và giao diện Thêm / Sửa / Xóa sản phẩm dành riêng cho Nhà sản xuất (`ROLE_PRODUCER`) và Admin (`ROLE_ADMIN`).
-   - Tải lên hình ảnh sản phẩm và nhập câu chuyện di sản OCOP.
-2. **Giỏ hàng (Shopping Cart)**:
-   - Entity `Cart` và `CartItem`, API Thêm vào giỏ, Cập nhật số lượng, Xóa khỏi giỏ.
-   - Giao diện Giỏ hàng dạng Drawer/Trang riêng ở Frontend với badge đếm số lượng món.
-3. **Quy trình Đặt hàng & Thanh toán mô phỏng (Checkout & Order)**:
-   - Entity `Order` và `OrderItem`, sinh mã đơn hàng duy nhất (`order_code`).
-   - Form Checkout nhập địa chỉ nhận hàng, số điện thoại, ghi chú.
-   - Module Thanh toán mô phỏng (Mock VNPay/MoMo/COD) ghi nhận trạng thái thanh toán.
-   - Quản lý trạng thái đơn hàng (PENDING -> CONFIRMED -> SHIPPING -> DELIVERED).
+### 1. Việc đã hoàn thành
+- [x] **Quản lý Giỏ hàng (Shopping Cart Context)**:
+  - Tạo JPA Entity `Cart` và `CartItem` (quan hệ `@OneToOne` với User, `@OneToMany` với CartItem có `orphanRemoval = true`).
+  - Tạo `CartRepository` và `CartItemRepository`.
+  - Triển khai `CartService` và `CartController` với đầy đủ REST endpoints:
+    - `GET /api/v1/cart`: Lấy thông tin giỏ hàng, tổng số lượng món và tổng tiền.
+    - `POST /api/v1/cart/items`: Thêm sản phẩm vào giỏ, kiểm tra số lượng tồn kho khả dụng (`stock_quantity`).
+    - `PUT /api/v1/cart/items/{itemId}`: Thay đổi số lượng mua.
+    - `DELETE /api/v1/cart/items/{itemId}`: Xóa món khỏi giỏ hàng.
+    - `DELETE /api/v1/cart`: Làm rỗng toàn bộ giỏ hàng.
+- [x] **Quy trình Đặt hàng & Quản lý Đơn hàng (Order & Checkout Context)**:
+  - Tạo JPA Entity `Order`, `OrderItem`, `Payment`, `Shipment`.
+  - Sinh mã đơn hàng chuẩn nghiệp vụ: `OCOP-YYYYMMDD-XXXX`.
+  - Xây dựng `OrderService` và `OrderController`:
+    - `POST /api/v1/orders`: Tạo đơn hàng từ giỏ hàng, tự động trừ tồn kho sản phẩm trong Transaction, tạo bản ghi thanh toán & vận đơn `GHTK-OCOP-...`, xóa sạch giỏ hàng.
+    - `GET /api/v1/orders`: Lấy lịch sử đơn hàng của người dùng đang đăng nhập.
+    - `GET /api/v1/orders/{orderCode}`: Xem chi tiết đơn hàng.
+    - `GET /api/v1/orders/all`: Lấy toàn bộ đơn hàng hệ thống (dành cho Admin / Nhà sản xuất).
+    - `PUT /api/v1/orders/{orderCode}/status`: Cập nhật trạng thái đơn hàng (`PENDING` -> `CONFIRMED` -> `SHIPPING` -> `DELIVERED`).
+- [x] **Cổng Thanh toán Mô phỏng (Mock Payment Module)**:
+  - `POST /api/v1/orders/{orderCode}/mock-pay`: Hỗ trợ phương thức `MOCK_VNPAY`, `MOCK_MOMO`, `COD`.
+  - Ghi nhận trạng thái thanh toán `SUCCESS`, sinh mã giao dịch `transaction_ref` và tự động đổi trạng thái đơn hàng sang `CONFIRMED`, trạng thái vận chuyển sang `IN_TRANSIT`.
+- [x] **Phân hệ Đăng bán Sản phẩm OCOP (Producer & Admin Portal)**:
+  - Thêm CRUD vào `ProductService` và `ProductController`:
+    - `POST /api/v1/products`: Nhà sản xuất (`ROLE_PRODUCER`) hoặc Admin (`ROLE_ADMIN`) đăng bán sản phẩm OCOP mới (tên, danh mục, hạng sao 3-5 sao, giá bán, tồn kho, đơn vị tính, ảnh đại diện, mô tả và câu chuyện văn hóa OCOP).
+    - `PUT /api/v1/products/{id}` & `DELETE /api/v1/products/{id}`: Cập nhật và xóa sản phẩm.
+- [x] **Giao diện Người dùng Thương mại điện tử (React + Ant Design)**:
+  - Xây dựng `CartContext` và hook `useCart()`.
+  - Tạo component `CartDrawer.jsx`: Ngăn kéo giỏ hàng trượt từ phải sang, cập nhật số lượng trực quan, hiển thị miễn phí vận chuyển OCOP.
+  - Tạo component `CheckoutModal.jsx`: Form đặt hàng điền thông tin người nhận, địa chỉ, ghi chú, chọn phương thức thanh toán và nút mô phỏng thanh toán 1-click.
+  - Tạo component `OrdersModal.jsx`: Xem lịch sử đơn hàng cá nhân kèm huy hiệu trạng thái và nút thanh toán nhanh cho các đơn chờ.
+  - Tạo component `CreateProductModal.jsx`: Form đăng bán sản phẩm OCOP mới dành cho Nhà sản xuất.
+  - Cập nhật Header `App.jsx`: Icon Giỏ hàng có Badge số lượng món nhảy số thời gian thực, nút "Đăng sản phẩm" cho Producer, nút "Đơn hàng của tôi" trong menu tài khoản.
+- [x] **Kiểm thử Tự động & Nghiệm thu End-to-End**:
+  - Script `scripts/test_ecommerce.ps1` kiểm tra liên thông 100% 8 bước nghiệp vụ từ Đăng nhập Khách hàng -> Thêm giỏ hàng -> Đặt hàng -> Thanh toán mô phỏng VNPay -> Giỏ hàng tự động làm rỗng -> Nhà sản xuất đăng sản phẩm mới -> Kiểm tra lịch sử đơn hàng.
+
+### 2. Các file quan trọng đã tạo / cập nhật trong Tuần 3
+- `backend/`:
+  - `src/main/java/com/ocop/entity/`: `Cart.java`, `CartItem.java`, `Order.java`, `OrderItem.java`, `Payment.java`, `Shipment.java`, cập nhật `Product.java`.
+  - `src/main/java/com/ocop/repository/`: `CartRepository.java`, `CartItemRepository.java`, `OrderRepository.java`, `PaymentRepository.java`.
+  - `src/main/java/com/ocop/dto/cart/`: `AddToCartRequest.java`, `UpdateCartItemRequest.java`, `CartItemDto.java`, `CartDto.java`.
+  - `src/main/java/com/ocop/dto/order/`: `CreateOrderRequest.java`, `MockPaymentRequest.java`, `OrderItemDto.java`, `OrderDto.java`.
+  - `src/main/java/com/ocop/dto/product/`: `CreateProductRequest.java`.
+  - `src/main/java/com/ocop/service/`: `CartService.java`, `OrderService.java`, cập nhật `ProductService.java`.
+  - `src/main/java/com/ocop/controller/`: `CartController.java`, `OrderController.java`, cập nhật `ProductController.java`.
+- `frontend/`:
+  - `src/api/cartApi.js` & `src/api/orderApi.js`: Tầng gọi API giỏ hàng và đơn hàng.
+  - `src/context/CartContext.jsx`: Quản lý state giỏ hàng.
+  - `src/components/`: `CartDrawer.jsx`, `CheckoutModal.jsx`, `OrdersModal.jsx`, `CreateProductModal.jsx`.
+  - `src/App.jsx` & `src/main.jsx`: Tích hợp toàn diện UI TMĐT và CartProvider.
+- `scripts/`:
+  - `scripts/test_ecommerce.ps1`: Kịch bản kiểm thử tự động toàn diện TMĐT.
+
+---
+
+## Kế hoạch Tiếp theo: Tuần 4 — Quản lý OCOP, Nhà sản xuất, Lô sản xuất & Bản đồ Tương tác GIS
+
+Mục tiêu Tuần 4:
+1. **Quản lý Chứng nhận OCOP & Cơ sở sản xuất**:
+   - Quản lý thông tin Hợp tác xã / Doanh nghiệp OCOP, địa chỉ, giấy chứng nhận OCOP, ngày cấp và thời hạn.
+2. **Quản lý Lô sản xuất (Production Batches) & Nhật ký chuỗi cung ứng (Events)**:
+   - Tạo lô sản xuất, ngày sản xuất, hạn sử dụng, sản lượng lô.
+   - Ghi nhận các sự kiện: Thu hoạch (`HARVEST`), Chế biến (`PROCESSING`), Đóng gói (`PACKAGING`), Kiểm định (`QUALITY_INSPECTION`).
+   - Tính toán hàm băm dữ liệu sự kiện (`raw_data_hash` SHA-256) làm tiền đề đẩy lên Blockchain ở Tuần 5.
+3. **Bản đồ Tương tác GIS (Leaflet + OpenStreetMap)**:
+   - Hiển thị bản đồ Việt Nam với Marker các vùng sản xuất và cơ sở OCOP trên tọa độ địa lý thực tế.
+   - Click vào Marker mở Popup hiển thị hình ảnh Hợp tác xã, thông tin vùng nguyên liệu và danh sách đặc sản OCOP tương ứng.
+   - Bộ lọc bản đồ theo Tỉnh/Thành phố và Hạng sao OCOP.

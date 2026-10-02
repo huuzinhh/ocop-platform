@@ -1,20 +1,25 @@
 package com.ocop.controller;
 
 import com.ocop.common.ApiResponse;
+import com.ocop.dto.product.CreateProductRequest;
 import com.ocop.entity.Category;
 import com.ocop.entity.Product;
 import com.ocop.service.ProductService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1")
-@Tag(name = "OCOP Products & Catalog", description = "Các API truy vấn sản phẩm OCOP và danh mục")
+@Tag(name = "OCOP Products & Catalog", description = "Các API truy vấn và quản lý sản phẩm OCOP, danh mục")
 public class ProductController {
 
     @Autowired
@@ -50,5 +55,48 @@ public class ProductController {
     @Operation(summary = "Lấy danh sách toàn bộ danh mục sản phẩm OCOP")
     public ApiResponse<List<Category>> getCategories() {
         return ApiResponse.ok(productService.getAllCategories(), "Lấy danh mục thành công");
+    }
+
+    @PostMapping("/products")
+    @PreAuthorize("hasAnyAuthority('ROLE_PRODUCER', 'ROLE_ADMIN')")
+    @SecurityRequirement(name = "bearerAuth")
+    @Operation(summary = "Đăng bán sản phẩm OCOP mới (Chỉ dành cho Nhà sản xuất hoặc Quản trị viên)")
+    public ResponseEntity<ApiResponse<Product>> createProduct(
+            Authentication authentication,
+            @Valid @RequestBody CreateProductRequest request) {
+        try {
+            Product product = productService.createProduct(authentication.getName(), request);
+            return ResponseEntity.status(201).body(ApiResponse.ok(product, "Đăng bán sản phẩm OCOP thành công!"));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("Lỗi tạo sản phẩm: " + e.getMessage()));
+        }
+    }
+
+    @PutMapping("/products/{id}")
+    @PreAuthorize("hasAnyAuthority('ROLE_PRODUCER', 'ROLE_ADMIN')")
+    @SecurityRequirement(name = "bearerAuth")
+    @Operation(summary = "Cập nhật thông tin sản phẩm OCOP")
+    public ResponseEntity<ApiResponse<Product>> updateProduct(
+            @PathVariable Long id,
+            @RequestBody CreateProductRequest request) {
+        try {
+            Product product = productService.updateProduct(id, request);
+            return ResponseEntity.ok(ApiResponse.ok(product, "Cập nhật sản phẩm thành công!"));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("Lỗi cập nhật: " + e.getMessage()));
+        }
+    }
+
+    @DeleteMapping("/products/{id}")
+    @PreAuthorize("hasAnyAuthority('ROLE_PRODUCER', 'ROLE_ADMIN')")
+    @SecurityRequirement(name = "bearerAuth")
+    @Operation(summary = "Xóa sản phẩm OCOP khỏi gian hàng")
+    public ResponseEntity<ApiResponse<Void>> deleteProduct(@PathVariable Long id) {
+        try {
+            productService.deleteProduct(id);
+            return ResponseEntity.ok(ApiResponse.ok(null, "Đã xóa sản phẩm thành công"));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("Lỗi xóa: " + e.getMessage()));
+        }
     }
 }
