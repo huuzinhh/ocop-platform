@@ -52,11 +52,11 @@ public class SecurityConfig {
                 .requestMatchers("/api/v1/auth/login", "/api/v1/auth/register").permitAll()
                 .requestMatchers("/api/v1/auth/**").permitAll()
                 // Công khai: Xem danh mục, danh sách sản phẩm OCOP và bản đồ
-                .requestMatchers(HttpMethod.GET, "/api/v1/products/**", "/api/v1/categories/**", "/api/v1/gis/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/v1/products", "/api/v1/products/**", "/api/v1/categories", "/api/v1/categories/**", "/api/v1/gis/**").permitAll()
                 // Quyền quản lý sản phẩm: Chỉ Nhà sản xuất và Admin
-                .requestMatchers(HttpMethod.POST, "/api/v1/products/**").hasAnyAuthority("ROLE_PRODUCER", "ROLE_ADMIN")
-                .requestMatchers(HttpMethod.PUT, "/api/v1/products/**").hasAnyAuthority("ROLE_PRODUCER", "ROLE_ADMIN")
-                .requestMatchers(HttpMethod.DELETE, "/api/v1/products/**").hasAnyAuthority("ROLE_PRODUCER", "ROLE_ADMIN")
+                .requestMatchers(HttpMethod.POST, "/api/v1/products", "/api/v1/products/**").hasAnyAuthority("ROLE_PRODUCER", "ROLE_ADMIN")
+                .requestMatchers(HttpMethod.PUT, "/api/v1/products", "/api/v1/products/**").hasAnyAuthority("ROLE_PRODUCER", "ROLE_ADMIN")
+                .requestMatchers(HttpMethod.DELETE, "/api/v1/products", "/api/v1/products/**").hasAnyAuthority("ROLE_PRODUCER", "ROLE_ADMIN")
                 // Các API còn lại yêu cầu đăng nhập
                 .anyRequest().authenticated()
             );

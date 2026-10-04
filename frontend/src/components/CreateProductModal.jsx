@@ -1,38 +1,58 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Modal, Form, Input, InputNumber, Select, Button, Space, Typography,
-  Rate, Alert, message, Row, Col
+  Alert, message, Row, Col, Tag, Spin
 } from 'antd';
 import {
-  ShopOutlined, PlusOutlined, StarFilled, SafetyCertificateOutlined
+  SafetyCertificateOutlined, ShopOutlined, CrownOutlined
 } from '@ant-design/icons';
 import { orderApi } from '../api/orderApi';
+import { ocopApi } from '../api/ocopApi';
+import { useAuth } from '../context/AuthContext';
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
 const { Option } = Select;
 
 const CreateProductModal = ({ open, onClose, onSuccess }) => {
+  const { currentUser, isProducer, isAdmin } = useAuth();
   const [form] = Form.useForm();
   const [submitting, setSubmitting] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
+  const [categories, setCategories] = useState([]);
+  const [catsLoading, setCatsLoading] = useState(false);
+
+  useEffect(() => {
+    if (open) {
+      setCatsLoading(true);
+      ocopApi.getCategories()
+        .then(res => {
+          if (res && res.success && res.data) setCategories(res.data);
+        })
+        .catch(() => {})
+        .finally(() => setCatsLoading(false));
+    }
+  }, [open]);
 
   const handleClose = () => {
     form.resetFields();
+    setErrorMsg('');
     onClose();
   };
 
   const handleSubmit = async (values) => {
     setSubmitting(true);
+    setErrorMsg('');
     try {
       const res = await orderApi.createProduct({
         name: values.name,
-        categoryId: values.categoryId,
+        categoryId: Number(values.categoryId),
         description: values.description,
         culturalStory: values.culturalStory,
-        price: values.price,
-        stockQuantity: values.stockQuantity,
+        price: Number(values.price),
+        stockQuantity: Number(values.stockQuantity),
         unit: values.unit,
-        ocopStarRating: values.ocopStarRating,
+        ocopStarRating: Number(values.ocopStarRating),
         thumbnail: values.thumbnail,
       });
 
@@ -43,11 +63,14 @@ const CreateProductModal = ({ open, onClose, onSuccess }) => {
       }
     } catch (err) {
       const msg = err.response?.data?.message || err.message || 'Lỗi đăng sản phẩm';
+      setErrorMsg(msg);
       message.error(msg);
     } finally {
       setSubmitting(false);
     }
   };
+
+  const hasPermission = isProducer() || isAdmin();
 
   return (
     <Modal
@@ -65,13 +88,42 @@ const CreateProductModal = ({ open, onClose, onSuccess }) => {
         </Space>
       }
     >
+      {!hasPermission ? (
+        <Alert
+          type="warning"
+          showIcon
+          message="Yêu cầu tài khoản Nhà sản xuất (ROLE_PRODUCER) hoặc Quản trị viên"
+          description={
+            <div>
+              <p>Tài khoản hiện tại <b>{currentUser?.username}</b> chưa có quyền đăng bán sản phẩm.</p>
+              <p>Vui lòng đăng xuất và đăng nhập bằng một trong các tài khoản sau:</p>
+              <div>• <Tag color="blue">Nhà sản xuất:</Tag> <code>producer_finho</code> / <code>123456</code></div>
+              <div>• <Tag color="red">Quản trị viên:</Tag> <code>admin</code> / <code>123456</code></div>
+            </div>
+          }
+          style={{ marginBottom: 16 }}
+        />
+      ) : (
+        <div style={{ marginBottom: 16, padding: '8px 12px', background: '#f6ffed', borderRadius: 6, border: '1px solid #b7eb8f' }}>
+          <Space>
+            <ShopOutlined style={{ color: '#2e7d32' }} />
+            <Text>Đang đăng với tư cách: <b>{currentUser?.fullName}</b></Text>
+            {isAdmin() ? <Tag color="red"><CrownOutlined /> Admin</Tag> : <Tag color="blue"><ShopOutlined /> Nhà sản xuất</Tag>}
+          </Space>
+        </div>
+      )}
+
+      {errorMsg && (
+        <Alert message={errorMsg} type="error" showIcon closable onClose={() => setErrorMsg('')} style={{ marginBottom: 16 }} />
+      )}
+
       <Form
         form={form}
         onFinish={handleSubmit}
         layout="vertical"
         size="large"
+        disabled={!hasPermission}
         initialValues={{
-          categoryId: 1,
           ocopStarRating: 4,
           stockQuantity: 100,
           unit: 'Hộp',
@@ -91,13 +143,12 @@ const CreateProductModal = ({ open, onClose, onSuccess }) => {
             <Form.Item
               name="categoryId"
               label="Danh mục ngành hàng"
-              rules={[{ required: true }]}
+              rules={[{ required: true, message: 'Vui lòng chọn danh mục' }]}
             >
-              <Select>
-                <Option value={1}>1. Chè & Thảo dược vùng cao</Option>
-                <Option value={2}>2. Mật ong & Lâm sản đặc sản</Option>
-                <Option value={3}>3. Nông sản & Gạo đặc sản</Option>
-                <Option value={4}>4. Rượu & Đồ uống truyền thống</Option>
+              <Select loading={catsLoading} placeholder="Chọn danh mục sản phẩm">
+                {categories.map(cat => (
+                  <Option key={cat.id} value={cat.id}>{cat.name}</Option>
+                ))}
               </Select>
             </Form.Item>
           </Col>
@@ -180,6 +231,7 @@ const CreateProductModal = ({ open, onClose, onSuccess }) => {
             htmlType="submit"
             block
             loading={submitting}
+            disabled={!hasPermission}
             style={{ background: '#1b5e20', height: 44, fontWeight: 'bold' }}
           >
             Đăng Bán Sản Phẩm OCOP Ngay

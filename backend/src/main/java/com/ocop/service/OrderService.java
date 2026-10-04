@@ -114,7 +114,6 @@ public class OrderService {
         return OrderDto.fromEntity(savedOrder);
     }
 
-    @Transactional(readOnly = true)
     public List<OrderDto> getUserOrders(String username) {
         User user = userRepository.findByUsernameOrEmail(username, username)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy tài khoản: " + username));
@@ -122,14 +121,12 @@ public class OrderService {
         return orders.stream().map(OrderDto::fromEntity).collect(Collectors.toList());
     }
 
-    @Transactional(readOnly = true)
     public List<OrderDto> getAllOrders() {
         return orderRepository.findAllByOrderByCreatedAtDesc().stream()
                 .map(OrderDto::fromEntity)
                 .collect(Collectors.toList());
     }
 
-    @Transactional(readOnly = true)
     public OrderDto getOrderByCode(String orderCode) {
         Order order = orderRepository.findByOrderCode(orderCode)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng: " + orderCode));

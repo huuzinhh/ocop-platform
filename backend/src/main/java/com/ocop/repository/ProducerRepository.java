@@ -9,4 +9,5 @@ import java.util.Optional;
 @Repository
 public interface ProducerRepository extends JpaRepository<Producer, Long> {
     Optional<Producer> findByCode(String code);
+    Optional<Producer> findByUserId(Long userId);
 }

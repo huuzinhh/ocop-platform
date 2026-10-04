@@ -37,7 +37,6 @@ public class CartService {
                 .orElseGet(() -> cartRepository.save(new Cart(user)));
     }
 
-    @Transactional(readOnly = true)
     public CartDto getCart(String username) {
         User user = userRepository.findByUsernameOrEmail(username, username)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy tài khoản: " + username));

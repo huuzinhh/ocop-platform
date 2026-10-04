@@ -30,7 +30,7 @@ const CartDrawer = ({ open, onClose, onOpenCheckout }) => {
         </Space>
       }
       placement="right"
-      width={460}
+      size={460}
       open={open}
       onClose={onClose}
       footer={

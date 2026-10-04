@@ -356,7 +356,7 @@ function App() {
             {/* DANH SÁCH SẢN PHẨM */}
             {productsLoading ? (
               <div style={{ textAlign: 'center', padding: '80px 0' }}>
-                <Spin size="large" tip="Đang tải sản phẩm từ cơ sở dữ liệu..." />
+                <Spin size="large" description="Đang tải sản phẩm từ cơ sở dữ liệu..." />
               </div>
             ) : products.length === 0 ? (
               <Alert message="Không tìm thấy sản phẩm OCOP phù hợp." type="info" showIcon />

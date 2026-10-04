@@ -85,12 +85,17 @@ public class ProductService {
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy danh mục ID: " + request.getCategoryId()));
 
         Producer producer = null;
-        if (request.getProducerId() != null) {
+
+        // Ưu tiên 1: Tìm producer liên kết với tài khoản người dùng đang đăng nhập
+        producer = producerRepository.findByUserId(user.getId()).orElse(null);
+
+        // Ưu tiên 2: Nếu người dùng không phải producer, dùng producerId được chỉ định
+        if (producer == null && request.getProducerId() != null) {
             producer = producerRepository.findById(request.getProducerId()).orElse(null);
         }
 
+        // Ưu tiên 3: Fallback — lấy producer đầu tiên trong hệ thống
         if (producer == null) {
-            // Lấy producer đầu tiên hoặc producer của user nếu có
             List<Producer> producers = producerRepository.findAll();
             if (!producers.isEmpty()) {
                 producer = producers.get(0);
@@ -98,6 +103,7 @@ public class ProductService {
                 throw new RuntimeException("Chưa có cơ sở sản xuất OCOP nào trong hệ thống");
             }
         }
+
 
         String baseSlug = toSlug(request.getName());
         String finalSlug = baseSlug + "-" + System.currentTimeMillis() % 10000;
