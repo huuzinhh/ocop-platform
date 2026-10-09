@@ -63,6 +63,22 @@ public class ProductService {
         return categoryRepository.findAll();
     }
 
+    public List<Product> getMyProducts(String username) {
+        User user = userRepository.findByUsernameOrEmail(username, username)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy tài khoản: " + username));
+
+        boolean isAdmin = user.getRoles().stream().anyMatch(r -> "ROLE_ADMIN".equals(r.getName()));
+        if (isAdmin) {
+            return productRepository.findAll();
+        }
+
+        Producer producer = producerRepository.findByUserId(user.getId()).orElse(null);
+        if (producer == null) {
+            return java.util.Collections.emptyList();
+        }
+        return productRepository.findByProducerId(producer.getId());
+    }
+
     private static final Pattern NONLATIN = Pattern.compile("[^\\w-]");
     private static final Pattern WHITESPACE = Pattern.compile("[\\s]");
 
@@ -84,26 +100,41 @@ public class ProductService {
         Category category = categoryRepository.findById(request.getCategoryId())
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy danh mục ID: " + request.getCategoryId()));
 
-        Producer producer = null;
+        boolean isAdmin = user.getRoles().stream().anyMatch(r -> "ROLE_ADMIN".equals(r.getName()));
+        boolean isProducerRole = user.getRoles().stream().anyMatch(r -> "ROLE_PRODUCER".equals(r.getName()));
 
-        // Ưu tiên 1: Tìm producer liên kết với tài khoản người dùng đang đăng nhập
-        producer = producerRepository.findByUserId(user.getId()).orElse(null);
+        Producer producer = producerRepository.findByUserId(user.getId()).orElse(null);
 
-        // Ưu tiên 2: Nếu người dùng không phải producer, dùng producerId được chỉ định
-        if (producer == null && request.getProducerId() != null) {
-            producer = producerRepository.findById(request.getProducerId()).orElse(null);
+        // Tự động khởi tạo hồ sơ Producer nếu tài khoản có vai trò ROLE_PRODUCER nhưng chưa có bản ghi
+        if (producer == null && isProducerRole) {
+            producer = new Producer();
+            producer.setUser(user);
+            producer.setName(user.getFullName() != null && !user.getFullName().trim().isEmpty() 
+                    ? user.getFullName().trim() : "Cơ sở " + user.getUsername());
+            producer.setCode("PROD-" + user.getUsername().toUpperCase() + "-" + (System.currentTimeMillis() % 100000));
+            producer.setDescription("Cơ sở sản xuất đặc sản OCOP " + user.getFullName());
+            producer.setContactEmail(user.getEmail());
+            producer.setPhone(user.getPhone());
+            producer.setIsVerified(true);
+            producer = producerRepository.save(producer);
         }
 
-        // Ưu tiên 3: Fallback — lấy producer đầu tiên trong hệ thống
-        if (producer == null) {
-            List<Producer> producers = producerRepository.findAll();
-            if (!producers.isEmpty()) {
-                producer = producers.get(0);
-            } else {
-                throw new RuntimeException("Chưa có cơ sở sản xuất OCOP nào trong hệ thống");
+        // Nếu là Admin, có thể chỉ định producerId hoặc chọn producer đầu tiên
+        if (producer == null && isAdmin) {
+            if (request.getProducerId() != null) {
+                producer = producerRepository.findById(request.getProducerId()).orElse(null);
+            }
+            if (producer == null) {
+                List<Producer> producers = producerRepository.findAll();
+                if (!producers.isEmpty()) {
+                    producer = producers.get(0);
+                }
             }
         }
 
+        if (producer == null) {
+            throw new RuntimeException("Không tìm thấy hồ sơ Nhà sản xuất liên kết với tài khoản này");
+        }
 
         String baseSlug = toSlug(request.getName());
         String finalSlug = baseSlug + "-" + System.currentTimeMillis() % 10000;
@@ -129,8 +160,25 @@ public class ProductService {
 
     @Transactional
     public Product updateProduct(Long id, CreateProductRequest request) {
+        return updateProduct(null, id, request);
+    }
+
+    @Transactional
+    public Product updateProduct(String username, Long id, CreateProductRequest request) {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy sản phẩm ID: " + id));
+
+        if (username != null) {
+            User user = userRepository.findByUsernameOrEmail(username, username)
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy tài khoản: " + username));
+            boolean isAdmin = user.getRoles().stream().anyMatch(r -> "ROLE_ADMIN".equals(r.getName()));
+            if (!isAdmin) {
+                Producer producer = producerRepository.findByUserId(user.getId()).orElse(null);
+                if (producer == null || product.getProducer() == null || !producer.getId().equals(product.getProducer().getId())) {
+                    throw new RuntimeException("Bạn không có quyền chỉnh sửa sản phẩm của cơ sở khác");
+                }
+            }
+        }
 
         if (request.getName() != null) product.setName(request.getName());
         if (request.getCategoryId() != null) {
@@ -152,8 +200,26 @@ public class ProductService {
 
     @Transactional
     public void deleteProduct(Long id) {
+        deleteProduct(null, id);
+    }
+
+    @Transactional
+    public void deleteProduct(String username, Long id) {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy sản phẩm ID: " + id));
+
+        if (username != null) {
+            User user = userRepository.findByUsernameOrEmail(username, username)
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy tài khoản: " + username));
+            boolean isAdmin = user.getRoles().stream().anyMatch(r -> "ROLE_ADMIN".equals(r.getName()));
+            if (!isAdmin) {
+                Producer producer = producerRepository.findByUserId(user.getId()).orElse(null);
+                if (producer == null || product.getProducer() == null || !producer.getId().equals(product.getProducer().getId())) {
+                    throw new RuntimeException("Bạn không có quyền xóa sản phẩm của cơ sở khác");
+                }
+            }
+        }
+
         productRepository.delete(product);
     }
 }

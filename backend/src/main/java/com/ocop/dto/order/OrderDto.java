@@ -65,6 +65,27 @@ public class OrderDto {
         return dto;
     }
 
+    public static OrderDto fromEntityForProducer(Order order, Long producerId) {
+        OrderDto dto = fromEntity(order);
+        if (order.getItems() != null) {
+            List<com.ocop.entity.OrderItem> producerItems = order.getItems().stream()
+                    .filter(item -> item.getProduct() != null &&
+                            item.getProduct().getProducer() != null &&
+                            producerId.equals(item.getProduct().getProducer().getId()))
+                    .collect(Collectors.toList());
+
+            dto.setItems(producerItems.stream().map(OrderItemDto::fromEntity).collect(Collectors.toList()));
+
+            // Tính tổng tiền các mặt hàng thuộc nhà sản xuất này
+            BigDecimal producerTotal = producerItems.stream()
+                    .map(com.ocop.entity.OrderItem::getTotalPrice)
+                    .filter(p -> p != null)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+            dto.setTotalAmount(producerTotal);
+        }
+        return dto;
+    }
+
     public Long getId() {
         return id;
     }

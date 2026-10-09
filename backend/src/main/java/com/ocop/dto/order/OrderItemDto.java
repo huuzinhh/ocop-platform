@@ -14,6 +14,8 @@ public class OrderItemDto {
     private Integer quantity;
     private BigDecimal unitPrice;
     private BigDecimal totalPrice;
+    private Long producerId;
+    private String producerName;
 
     public OrderItemDto() {}
 
@@ -26,6 +28,10 @@ public class OrderItemDto {
             dto.setProductSlug(item.getProduct().getSlug());
             dto.setThumbnail(item.getProduct().getThumbnail());
             dto.setOcopStarRating(item.getProduct().getOcopStarRating());
+            if (item.getProduct().getProducer() != null) {
+                dto.setProducerId(item.getProduct().getProducer().getId());
+                dto.setProducerName(item.getProduct().getProducer().getName());
+            }
         }
         dto.setQuantity(item.getQuantity());
         dto.setUnitPrice(item.getUnitPrice());
@@ -103,5 +109,21 @@ public class OrderItemDto {
 
     public void setTotalPrice(BigDecimal totalPrice) {
         this.totalPrice = totalPrice;
+    }
+
+    public Long getProducerId() {
+        return producerId;
+    }
+
+    public void setProducerId(Long producerId) {
+        this.producerId = producerId;
+    }
+
+    public String getProducerName() {
+        return producerName;
+    }
+
+    public void setProducerName(String producerName) {
+        this.producerName = producerName;
     }
 }

@@ -1,8 +1,10 @@
 package com.ocop.service;
 
 import com.ocop.dto.auth.*;
+import com.ocop.entity.Producer;
 import com.ocop.entity.Role;
 import com.ocop.entity.User;
+import com.ocop.repository.ProducerRepository;
 import com.ocop.repository.RoleRepository;
 import com.ocop.repository.UserRepository;
 import com.ocop.security.JwtTokenProvider;
@@ -30,6 +32,9 @@ public class AuthService {
 
     @Autowired
     private RoleRepository roleRepository;
+
+    @Autowired
+    private ProducerRepository producerRepository;
 
     @Autowired
     private PasswordEncoder passwordEncoder;
@@ -73,8 +78,8 @@ public class AuthService {
 
         // Phân quyền dựa trên lựa chọn khi đăng ký
         Set<Role> roles = new HashSet<>();
-        String roleName = "PRODUCER".equalsIgnoreCase(request.getRole())
-                ? "ROLE_PRODUCER" : "ROLE_CUSTOMER";
+        boolean isProducer = "PRODUCER".equalsIgnoreCase(request.getRole());
+        String roleName = isProducer ? "ROLE_PRODUCER" : "ROLE_CUSTOMER";
 
         Role role = roleRepository.findByName(roleName)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy role: " + roleName));
@@ -82,6 +87,21 @@ public class AuthService {
         user.setRoles(roles);
 
         User savedUser = userRepository.save(user);
+
+        // Tự động khởi tạo hồ sơ Nhà sản xuất (Producer) nếu chọn vai trò PRODUCER
+        if (isProducer) {
+            Producer producer = new Producer();
+            producer.setUser(savedUser);
+            producer.setName(request.getFullName() != null && !request.getFullName().trim().isEmpty() 
+                    ? request.getFullName().trim() : "Cơ sở " + savedUser.getUsername());
+            producer.setCode("PROD-" + savedUser.getUsername().toUpperCase() + "-" + (System.currentTimeMillis() % 100000));
+            producer.setDescription("Cơ sở sản xuất đặc sản OCOP " + savedUser.getFullName());
+            producer.setContactEmail(savedUser.getEmail());
+            producer.setPhone(savedUser.getPhone());
+            producer.setIsVerified(true);
+            producerRepository.save(producer);
+        }
+
         return UserDto.fromEntity(savedUser);
     }
 

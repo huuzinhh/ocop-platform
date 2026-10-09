@@ -57,6 +57,15 @@ public class ProductController {
         return ApiResponse.ok(productService.getAllCategories(), "Lấy danh mục thành công");
     }
 
+    @GetMapping("/products/my-products")
+    @PreAuthorize("hasAnyAuthority('ROLE_PRODUCER', 'ROLE_ADMIN')")
+    @SecurityRequirement(name = "bearerAuth")
+    @Operation(summary = "Lấy danh sách sản phẩm thuộc quyền quản lý của người dùng đang đăng nhập")
+    public ApiResponse<List<Product>> getMyProducts(Authentication authentication) {
+        List<Product> products = productService.getMyProducts(authentication.getName());
+        return ApiResponse.ok(products, "Lấy danh sách sản phẩm của cơ sở thành công");
+    }
+
     @PostMapping("/products")
     @PreAuthorize("hasAnyAuthority('ROLE_PRODUCER', 'ROLE_ADMIN')")
     @SecurityRequirement(name = "bearerAuth")
@@ -77,10 +86,11 @@ public class ProductController {
     @SecurityRequirement(name = "bearerAuth")
     @Operation(summary = "Cập nhật thông tin sản phẩm OCOP")
     public ResponseEntity<ApiResponse<Product>> updateProduct(
+            Authentication authentication,
             @PathVariable Long id,
             @RequestBody CreateProductRequest request) {
         try {
-            Product product = productService.updateProduct(id, request);
+            Product product = productService.updateProduct(authentication.getName(), id, request);
             return ResponseEntity.ok(ApiResponse.ok(product, "Cập nhật sản phẩm thành công!"));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(ApiResponse.error("Lỗi cập nhật: " + e.getMessage()));
@@ -91,9 +101,11 @@ public class ProductController {
     @PreAuthorize("hasAnyAuthority('ROLE_PRODUCER', 'ROLE_ADMIN')")
     @SecurityRequirement(name = "bearerAuth")
     @Operation(summary = "Xóa sản phẩm OCOP khỏi gian hàng")
-    public ResponseEntity<ApiResponse<Void>> deleteProduct(@PathVariable Long id) {
+    public ResponseEntity<ApiResponse<Void>> deleteProduct(
+            Authentication authentication,
+            @PathVariable Long id) {
         try {
-            productService.deleteProduct(id);
+            productService.deleteProduct(authentication.getName(), id);
             return ResponseEntity.ok(ApiResponse.ok(null, "Đã xóa sản phẩm thành công"));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(ApiResponse.error("Lỗi xóa: " + e.getMessage()));

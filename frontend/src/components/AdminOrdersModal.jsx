@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import {
   Modal, List, Card, Tag, Typography, Space, Button, Empty,
-  Select, Spin, message, Row, Col,
-  Listy
+  Select, Spin, message, Row, Col
 } from 'antd';
 import {
   ShopOutlined, CheckCircleOutlined, ClockCircleOutlined,
-  TruckOutlined, SyncOutlined, UserOutlined
+  TruckOutlined, SyncOutlined, UserOutlined, CrownOutlined
 } from '@ant-design/icons';
 import { orderApi } from '../api/orderApi';
+import { useAuth } from '../context/AuthContext';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -29,20 +29,23 @@ const getStatusBadge = (status) => {
 };
 
 const AdminOrdersModal = ({ open, onClose }) => {
+  const { currentUser, isAdmin, isProducer } = useAuth();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(false);
   const [updatingCode, setUpdatingCode] = useState(null);
 
-  const fetchAllOrders = async () => {
+  const fetchOrders = async () => {
     setLoading(true);
     try {
+      // Backend /api/v1/orders/all tự động lọc đơn hàng theo quyền:
+      // Admin xem toàn bộ hệ thống, Nhà sản xuất chỉ xem đơn chứa sản phẩm của mình
       const res = await orderApi.getAllOrders();
       if (res && res.success && res.data) {
         setOrders(res.data);
       }
     } catch (err) {
       console.error(err);
-      message.error('Không thể tải danh sách đơn hàng toàn hệ thống');
+      message.error(isAdmin() ? 'Không thể tải danh sách đơn hàng toàn hệ thống' : 'Không thể tải danh sách đơn hàng của bạn');
     } finally {
       setLoading(false);
     }
@@ -50,7 +53,7 @@ const AdminOrdersModal = ({ open, onClose }) => {
 
   useEffect(() => {
     if (open) {
-      fetchAllOrders();
+      fetchOrders();
     }
   }, [open]);
 
@@ -60,7 +63,7 @@ const AdminOrdersModal = ({ open, onClose }) => {
       const res = await orderApi.updateStatus(orderCode, newStatus);
       if (res && res.success) {
         message.success(`Đã cập nhật trạng thái đơn ${orderCode} sang ${newStatus}`);
-        fetchAllOrders();
+        fetchOrders();
       }
     } catch (err) {
       message.error('Lỗi cập nhật trạng thái: ' + err.message);
@@ -74,7 +77,7 @@ const AdminOrdersModal = ({ open, onClose }) => {
       open={open}
       onCancel={onClose}
       footer={[
-        <Button key="refresh" icon={<SyncOutlined />} onClick={fetchAllOrders}>
+        <Button key="refresh" icon={<SyncOutlined />} onClick={fetchOrders}>
           Làm mới
         </Button>,
         <Button key="close" type="primary" style={{ background: '#1b5e20' }} onClick={onClose}>
@@ -84,20 +87,38 @@ const AdminOrdersModal = ({ open, onClose }) => {
       width={800}
       centered
       title={
-        <Space>
-          <ShopOutlined style={{ color: '#1b5e20', fontSize: 20 }} />
-          <Title level={4} style={{ margin: 0, color: '#1b5e20' }}>
-            Quản Lý Đơn Hàng Hệ Thống OCOP ({orders.length})
-          </Title>
-        </Space>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingRight: 24 }}>
+          <Space>
+            {isAdmin() ? (
+              <CrownOutlined style={{ color: '#d32f2f', fontSize: 20 }} />
+            ) : (
+              <ShopOutlined style={{ color: '#1b5e20', fontSize: 20 }} />
+            )}
+            <Title level={4} style={{ margin: 0, color: '#1b5e20' }}>
+              {isAdmin() ? 'Quản Lý Toàn Bộ Đơn Hàng Hệ Thống' : 'Quản Lý Đơn Hàng Của Nhà Sản Xuất'} ({orders.length})
+            </Title>
+          </Space>
+          {isAdmin() ? (
+            <Tag color="red">Toàn hệ thống</Tag>
+          ) : (
+            <Tag color="blue"><ShopOutlined /> {currentUser?.fullName}</Tag>
+          )}
+        </div>
       }
     >
       {loading ? (
         <div style={{ textAlign: 'center', padding: '60px 0' }}>
-          <Spin size="large" tip="Đang tải toàn bộ đơn hàng..." />
+          <Spin size="large" tip={isAdmin() ? "Đang tải toàn bộ đơn hàng..." : "Đang tải đơn hàng của cơ sở..."} />
         </div>
       ) : orders.length === 0 ? (
-        <Empty description="Chưa có đơn hàng nào trong hệ thống." style={{ margin: '40px 0' }} />
+        <Empty
+          description={
+            isAdmin()
+              ? "Chưa có đơn hàng nào trong toàn hệ thống."
+              : "Chưa có đơn hàng nào đặt mua sản phẩm của cơ sở bạn."
+          }
+          style={{ margin: '40px 0' }}
+        />
       ) : (
         <List
           dataSource={orders}

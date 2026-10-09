@@ -4,6 +4,7 @@ export const orderApi = {
   createOrder: (orderData) => axiosClient.post('/api/v1/orders', orderData),
   getMyOrders: () => axiosClient.get('/api/v1/orders'),
   getAllOrders: () => axiosClient.get('/api/v1/orders/all'),
+  getProducerOrders: () => axiosClient.get('/api/v1/orders/producer'),
   getOrderByCode: (orderCode) => axiosClient.get(`/api/v1/orders/${orderCode}`),
   mockPay: (orderCode, paymentMethod = 'MOCK_VNPAY') =>
     axiosClient.post(`/api/v1/orders/${orderCode}/mock-pay`, { paymentMethod }),

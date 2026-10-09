@@ -1,0 +1,181 @@
+<mxfile host="Electron" agent="ChatGPT">
+  <diagram id="ocop-erd" name="OCOP Database ERD">
+    <mxGraphModel dx="4180" dy="1720" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="1800" pageHeight="1300" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="_yMUAO5hqo5q55LErs8j-205" edge="1" parent="1" source="2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=ERoneToMany;endFill=0;startArrow=ERmandOne;startFill=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;" target="4">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="-1027" y="558.9999999999998" as="sourcePoint" />
+            <mxPoint x="-880.2728012908592" y="674.6363636363635" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;verticalAlign=top;spacingTop=8;spacingLeft=8;spacingRight=8;" value="&lt;div&gt;&lt;div style=&quot;font-size:16px;font-weight:bold;margin-bottom:6px&quot;&gt;roles&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;&lt;span style=&quot;font-weight:bold&quot;&gt;PK&lt;/span&gt;&amp;nbsp;id : INTEGER&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;name : VARCHAR(50)&lt;/div&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="72" width="285" x="-1219" y="409" as="geometry" />
+        </mxCell>
+        <mxCell id="4" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;verticalAlign=top;spacingTop=8;spacingLeft=8;spacingRight=8;" value="&lt;div&gt;&lt;div style=&quot;font-size:16px;font-weight:bold;margin-bottom:6px&quot;&gt;user_roles&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;&lt;span style=&quot;font-weight:bold&quot;&gt;PK/FK&lt;/span&gt;&amp;nbsp;user_id : BIGINT&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;&lt;span style=&quot;font-weight:bold&quot;&gt;PK/FK&lt;/span&gt;&amp;nbsp;role_id : INTEGER&lt;/div&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="72" width="285" x="-824" y="409" as="geometry" />
+        </mxCell>
+        <mxCell id="5" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;verticalAlign=top;spacingTop=8;spacingLeft=8;spacingRight=8;" value="&lt;div&gt;&lt;div style=&quot;font-size:16px;font-weight:bold;margin-bottom:6px&quot;&gt;locations&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;&lt;span style=&quot;font-weight:bold&quot;&gt;PK&lt;/span&gt;&amp;nbsp;id : BIGINT&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;province : VARCHAR(100)&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;district : VARCHAR(100)&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;ward : VARCHAR(100)&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;address_detail : VARCHAR(255)&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;latitude : NUMERIC(10,7)&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;longitude : NUMERIC(10,7)&lt;/div&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="157" width="285" x="-320" y="1378" as="geometry" />
+        </mxCell>
+        <mxCell id="6" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;verticalAlign=top;spacingTop=8;spacingLeft=8;spacingRight=8;" value="&lt;div&gt;&lt;div style=&quot;font-size:16px;font-weight:bold;margin-bottom:6px&quot;&gt;producers&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;&lt;span style=&quot;font-weight:bold&quot;&gt;PK&lt;/span&gt;&amp;nbsp;id : BIGINT&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;&lt;span style=&quot;font-weight:bold&quot;&gt;FK&lt;/span&gt;&amp;nbsp;user_id : BIGINT&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;name : VARCHAR(150)&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;&lt;span style=&quot;font-weight:bold&quot;&gt;UQ&lt;/span&gt;&amp;nbsp;code : VARCHAR(50)&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;description : TEXT&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;&lt;span style=&quot;font-weight:bold&quot;&gt;FK&lt;/span&gt;&amp;nbsp;location_id : BIGINT&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;contact_email : VARCHAR(100)&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;phone : VARCHAR(20)&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;website : VARCHAR(150)&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;is_verified : BOOLEAN&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;created_at : TIMESTAMP&lt;/div&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="225" width="285" x="-320" y="797" as="geometry" />
+        </mxCell>
+        <mxCell id="7" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;verticalAlign=top;spacingTop=8;spacingLeft=8;spacingRight=8;" value="&lt;div&gt;&lt;div style=&quot;font-size:16px;font-weight:bold;margin-bottom:6px&quot;&gt;categories&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;&lt;span style=&quot;font-weight:bold&quot;&gt;PK&lt;/span&gt;&amp;nbsp;id : BIGINT&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;name : VARCHAR(100)&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;&lt;span style=&quot;font-weight:bold&quot;&gt;UQ&lt;/span&gt;&amp;nbsp;slug : VARCHAR(100)&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;description : TEXT&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;icon_url : VARCHAR(255)&lt;/div&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="123" width="285" x="44" y="1101" as="geometry" />
+        </mxCell>
+        <mxCell id="8" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;verticalAlign=top;spacingTop=8;spacingLeft=8;spacingRight=8;" value="&lt;div&gt;&lt;div style=&quot;font-size:16px;font-weight:bold;margin-bottom:6px&quot;&gt;products&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;&lt;span style=&quot;font-weight:bold&quot;&gt;PK&lt;/span&gt;&amp;nbsp;id : BIGINT&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;&lt;span style=&quot;font-weight:bold&quot;&gt;FK&lt;/span&gt;&amp;nbsp;producer_id : BIGINT&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;&lt;span style=&quot;font-weight:bold&quot;&gt;FK&lt;/span&gt;&amp;nbsp;category_id : BIGINT&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;name : VARCHAR(200)&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;&lt;span style=&quot;font-weight:bold&quot;&gt;UQ&lt;/span&gt;&amp;nbsp;slug : VARCHAR(220)&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;description : TEXT&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;cultural_story : TEXT&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;price : NUMERIC(12,2)&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;stock_quantity : INTEGER&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;unit : VARCHAR(30)&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;ocop_star_rating : SMALLINT&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;thumbnail : VARCHAR(255)&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;status : VARCHAR(20)&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;created_at : TIMESTAMP&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;updated_at : TIMESTAMP&lt;/div&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="293" width="285" x="403" y="763" as="geometry" />
+        </mxCell>
+        <mxCell id="9" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;verticalAlign=top;spacingTop=8;spacingLeft=8;spacingRight=8;" value="&lt;div&gt;&lt;div style=&quot;font-size:16px;font-weight:bold;margin-bottom:6px&quot;&gt;product_images&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;&lt;span style=&quot;font-weight:bold&quot;&gt;PK&lt;/span&gt;&amp;nbsp;id : BIGINT&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;&lt;span style=&quot;font-weight:bold&quot;&gt;FK&lt;/span&gt;&amp;nbsp;product_id : BIGINT&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;image_url : VARCHAR(255)&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;is_primary : BOOLEAN&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;display_order : INTEGER&lt;/div&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="123" width="285" x="59" y="578" as="geometry" />
+        </mxCell>
+        <mxCell id="10" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;verticalAlign=top;spacingTop=8;spacingLeft=8;spacingRight=8;" value="&lt;div&gt;&lt;div style=&quot;font-size:16px;font-weight:bold;margin-bottom:6px&quot;&gt;ocop_certificates&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;&lt;span style=&quot;font-weight:bold&quot;&gt;PK&lt;/span&gt;&amp;nbsp;id : BIGINT&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;&lt;span style=&quot;font-weight:bold&quot;&gt;FK&lt;/span&gt;&amp;nbsp;product_id : BIGINT&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;certificate_code : VARCHAR(50)&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;star_rating : SMALLINT&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;issued_date : DATE&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;expiry_date : DATE&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;issuing_authority : VARCHAR(150)&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;document_url : VARCHAR(255)&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;is_sample_data : BOOLEAN&lt;/div&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="191" width="285" x="925" y="814" as="geometry" />
+        </mxCell>
+        <mxCell id="11" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;verticalAlign=top;spacingTop=8;spacingLeft=8;spacingRight=8;" value="&lt;div&gt;&lt;div style=&quot;font-size:16px;font-weight:bold;margin-bottom:6px&quot;&gt;production_batches&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;&lt;span style=&quot;font-weight:bold&quot;&gt;PK&lt;/span&gt;&amp;nbsp;id : BIGINT&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;&lt;span style=&quot;font-weight:bold&quot;&gt;FK&lt;/span&gt;&amp;nbsp;product_id : BIGINT&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;&lt;span style=&quot;font-weight:bold&quot;&gt;UQ&lt;/span&gt;&amp;nbsp;batch_code : VARCHAR(50)&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;manufacture_date : DATE&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;expiry_date : DATE&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;quantity : INTEGER&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;qr_code_url : VARCHAR(255)&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;raw_data_hash : VARCHAR(66)&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;blockchain_tx_hash : VARCHAR(66)&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;blockchain_status : VARCHAR(20)&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;created_at : TIMESTAMP&lt;/div&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="225" width="285" x="403" y="1344" as="geometry" />
+        </mxCell>
+        <mxCell id="12" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;verticalAlign=top;spacingTop=8;spacingLeft=8;spacingRight=8;" value="&lt;div&gt;&lt;div style=&quot;font-size:16px;font-weight:bold;margin-bottom:6px&quot;&gt;production_events&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;&lt;span style=&quot;font-weight:bold&quot;&gt;PK&lt;/span&gt;&amp;nbsp;id : BIGINT&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;&lt;span style=&quot;font-weight:bold&quot;&gt;FK&lt;/span&gt;&amp;nbsp;batch_id : BIGINT&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;event_type : VARCHAR(30)&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;event_name : VARCHAR(150)&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;description : TEXT&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;actor_name : VARCHAR(100)&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;&lt;span style=&quot;font-weight:bold&quot;&gt;FK&lt;/span&gt;&amp;nbsp;location_id : BIGINT&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;event_timestamp : TIMESTAMP&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;raw_data_hash : VARCHAR(66)&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;blockchain_tx_hash : VARCHAR(66)&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;created_at : TIMESTAMP&lt;/div&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="225" width="285" x="44" y="1344" as="geometry" />
+        </mxCell>
+        <mxCell id="13" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;verticalAlign=top;spacingTop=8;spacingLeft=8;spacingRight=8;" value="&lt;div&gt;&lt;div style=&quot;font-size:16px;font-weight:bold;margin-bottom:6px&quot;&gt;carts&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;&lt;span style=&quot;font-weight:bold&quot;&gt;PK&lt;/span&gt;&amp;nbsp;id : BIGINT&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;&lt;span style=&quot;font-weight:bold&quot;&gt;FK/UQ&lt;/span&gt;&amp;nbsp;user_id : BIGINT&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;created_at : TIMESTAMP&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;updated_at : TIMESTAMP&lt;/div&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="106" width="285" x="650" y="392" as="geometry" />
+        </mxCell>
+        <mxCell id="14" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;verticalAlign=top;spacingTop=8;spacingLeft=8;spacingRight=8;" value="&lt;div&gt;&lt;div style=&quot;font-size:16px;font-weight:bold;margin-bottom:6px&quot;&gt;cart_items&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;&lt;span style=&quot;font-weight:bold&quot;&gt;PK&lt;/span&gt;&amp;nbsp;id : BIGINT&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;&lt;span style=&quot;font-weight:bold&quot;&gt;FK&lt;/span&gt;&amp;nbsp;cart_id : BIGINT&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;&lt;span style=&quot;font-weight:bold&quot;&gt;FK&lt;/span&gt;&amp;nbsp;product_id : BIGINT&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;quantity : INTEGER&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;unit_price : NUMERIC(12,2)&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;&lt;span style=&quot;font-weight:bold&quot;&gt;UQ&lt;/span&gt;&amp;nbsp;UNIQUE(cart_id, product_id)&lt;/div&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="140" width="285" x="650" y="578" as="geometry" />
+        </mxCell>
+        <mxCell id="15" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;verticalAlign=top;spacingTop=8;spacingLeft=8;spacingRight=8;" value="&lt;div&gt;&lt;div style=&quot;font-size:16px;font-weight:bold;margin-bottom:6px&quot;&gt;orders&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;&lt;span style=&quot;font-weight:bold&quot;&gt;PK&lt;/span&gt;&amp;nbsp;id : BIGINT&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;&lt;span style=&quot;font-weight:bold&quot;&gt;UQ&lt;/span&gt;&amp;nbsp;order_code : VARCHAR(30)&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;&lt;span style=&quot;font-weight:bold&quot;&gt;FK&lt;/span&gt;&amp;nbsp;user_id : BIGINT&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;total_amount : NUMERIC(12,2)&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;shipping_fee : NUMERIC(12,2)&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;status : VARCHAR(20)&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;shipping_address : TEXT&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;recipient_name : VARCHAR(100)&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;recipient_phone : VARCHAR(20)&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;note : TEXT&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;created_at : TIMESTAMP&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;updated_at : TIMESTAMP&lt;/div&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="242" width="285" x="-532" y="1613" as="geometry" />
+        </mxCell>
+        <mxCell id="16" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;verticalAlign=top;spacingTop=8;spacingLeft=8;spacingRight=8;" value="&lt;div&gt;&lt;div style=&quot;font-size:16px;font-weight:bold;margin-bottom:6px&quot;&gt;order_items&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;&lt;span style=&quot;font-weight:bold&quot;&gt;PK&lt;/span&gt;&amp;nbsp;id : BIGINT&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;&lt;span style=&quot;font-weight:bold&quot;&gt;FK&lt;/span&gt;&amp;nbsp;order_id : BIGINT&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;&lt;span style=&quot;font-weight:bold&quot;&gt;FK&lt;/span&gt;&amp;nbsp;product_id : BIGINT&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;&lt;span style=&quot;font-weight:bold&quot;&gt;FK&lt;/span&gt;&amp;nbsp;batch_id : BIGINT (nullable)&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;product_name : VARCHAR(200)&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;quantity : INTEGER&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;unit_price : NUMERIC(12,2)&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;total_price : NUMERIC(12,2)&lt;/div&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="174" width="285" x="650" y="1647" as="geometry" />
+        </mxCell>
+        <mxCell id="_yMUAO5hqo5q55LErs8j-201" edge="1" parent="1" source="17" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.25;entryY=0;entryDx=0;entryDy=0;endArrow=ERmandOne;endFill=0;startArrow=ERmandOne;startFill=0;edgeStyle=orthogonalEdgeStyle;" target="15">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="17" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;verticalAlign=top;spacingTop=8;spacingLeft=8;spacingRight=8;" value="&lt;div&gt;&lt;div style=&quot;font-size:16px;font-weight:bold;margin-bottom:6px&quot;&gt;payments&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;&lt;span style=&quot;font-weight:bold&quot;&gt;PK&lt;/span&gt;&amp;nbsp;id : BIGINT&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;&lt;span style=&quot;font-weight:bold&quot;&gt;FK/UQ&lt;/span&gt;&amp;nbsp;order_id : BIGINT&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;payment_method : VARCHAR(30)&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;amount : NUMERIC(12,2)&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;status : VARCHAR(20)&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;transaction_ref : VARCHAR(100)&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;payment_time : TIMESTAMP&lt;/div&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="157" width="285" x="-895" y="1378" as="geometry" />
+        </mxCell>
+        <mxCell id="18" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;verticalAlign=top;spacingTop=8;spacingLeft=8;spacingRight=8;" value="&lt;div&gt;&lt;div style=&quot;font-size:16px;font-weight:bold;margin-bottom:6px&quot;&gt;shipments&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;&lt;span style=&quot;font-weight:bold&quot;&gt;PK&lt;/span&gt;&amp;nbsp;id : BIGINT&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;&lt;span style=&quot;font-weight:bold&quot;&gt;FK/UQ&lt;/span&gt;&amp;nbsp;order_id : BIGINT&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;&lt;span style=&quot;font-weight:bold&quot;&gt;UQ&lt;/span&gt;&amp;nbsp;tracking_code : VARCHAR(50)&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;carrier_name : VARCHAR(100)&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;status : VARCHAR(20)&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;updated_at : TIMESTAMP&lt;/div&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="140" width="285" x="-915" y="1664" as="geometry" />
+        </mxCell>
+        <mxCell id="200" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;verticalAlign=top;spacing=8;" value="&lt;b&gt;LEGEND&lt;/b&gt;&lt;br&gt;PK = Primary Key&lt;br&gt;FK = Foreign Key&lt;br&gt;UQ = UNIQUE constraint&lt;br&gt;1:N = one-to-many" vertex="1">
+          <mxGeometry height="110" width="360" x="1242" y="210" as="geometry" />
+        </mxCell>
+        <mxCell id="3" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;verticalAlign=top;spacingTop=8;spacingLeft=8;spacingRight=8;" value="&lt;div&gt;&lt;div style=&quot;font-size:16px;font-weight:bold;margin-bottom:6px&quot;&gt;users&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;&lt;span style=&quot;font-weight:bold&quot;&gt;PK&lt;/span&gt;&amp;nbsp;id : BIGINT&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;&lt;span style=&quot;font-weight:bold&quot;&gt;UQ&lt;/span&gt;&amp;nbsp;username : VARCHAR(50)&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;&lt;span style=&quot;font-weight:bold&quot;&gt;UQ&lt;/span&gt;&amp;nbsp;email : VARCHAR(100)&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;password_hash : VARCHAR(255)&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;full_name : VARCHAR(100)&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;phone : VARCHAR(20)&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;avatar_url : VARCHAR(255)&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;status : VARCHAR(20)&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;created_at : TIMESTAMP&lt;/div&gt;&lt;div style=&quot;font-size:11px;line-height:16px&quot;&gt;updated_at : TIMESTAMP&lt;/div&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="208" width="285" x="-462" y="341" as="geometry" />
+        </mxCell>
+        <mxCell id="_yMUAO5hqo5q55LErs8j-202" edge="1" parent="1" source="18" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;endArrow=ERmandOne;endFill=0;startArrow=ERmandOne;startFill=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;edgeStyle=orthogonalEdgeStyle;" target="15">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="-653" y="1377" as="sourcePoint" />
+            <mxPoint x="-450" y="1571" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="_yMUAO5hqo5q55LErs8j-204" edge="1" parent="1" source="3" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=ERmandOne;endFill=0;startArrow=ERmandOne;startFill=0;edgeStyle=orthogonalEdgeStyle;exitX=0.75;exitY=1;exitDx=0;exitDy=0;entryX=0.25;entryY=0;entryDx=0;entryDy=0;" target="6">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="-167" y="455" as="sourcePoint" />
+            <mxPoint x="86.32999999999998" y="755.67" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="_yMUAO5hqo5q55LErs8j-206" edge="1" parent="1" source="3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=ERoneToMany;endFill=0;startArrow=ERmandOne;startFill=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;exitX=0;exitY=0.5;exitDx=0;exitDy=0;" target="4">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="-915" y="583" as="sourcePoint" />
+            <mxPoint x="-805" y="583" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="_yMUAO5hqo5q55LErs8j-208" edge="1" parent="1" source="3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=ERoneToMany;endFill=0;startArrow=ERmandOne;startFill=0;exitX=0.25;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="15">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="-452" y="455" as="sourcePoint" />
+            <mxPoint x="-519.33" y="715" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="_yMUAO5hqo5q55LErs8j-209" edge="1" parent="1" source="3" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=ERmandOne;endFill=0;startArrow=ERmandOne;startFill=0;edgeStyle=orthogonalEdgeStyle;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="13">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="-126.66999999999996" y="490.3299999999999" as="sourcePoint" />
+            <mxPoint x="512.12" y="503.6700000000001" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="_yMUAO5hqo5q55LErs8j-210" edge="1" parent="1" source="8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=ERoneToMany;endFill=0;startArrow=ERmandOne;startFill=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;exitX=1;exitY=0.75;exitDx=0;exitDy=0;" target="16">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="898" y="1174" as="sourcePoint" />
+            <mxPoint x="1008" y="1174" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="_yMUAO5hqo5q55LErs8j-211" edge="1" parent="1" source="13" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=ERoneToMany;endFill=0;startArrow=ERmandOne;startFill=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" target="14">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="535" y="220" as="sourcePoint" />
+            <mxPoint x="645" y="220" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="_yMUAO5hqo5q55LErs8j-212" edge="1" parent="1" source="8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=ERoneToMany;endFill=0;startArrow=ERmandOne;startFill=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;exitX=0;exitY=0.25;exitDx=0;exitDy=0;" target="9">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="301.9250000000002" y="868.7790000000002" as="sourcePoint" />
+            <mxPoint x="157.99999999999955" y="744" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="_yMUAO5hqo5q55LErs8j-213" edge="1" parent="1" source="8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=ERoneToMany;endFill=0;startArrow=ERmandOne;startFill=0;exitX=1;exitY=0.25;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" target="14">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="467" y="559" as="sourcePoint" />
+            <mxPoint x="606" y="691.67" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="_yMUAO5hqo5q55LErs8j-214" edge="1" parent="1" source="8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=ERoneToMany;endFill=0;startArrow=ERmandOne;startFill=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;" target="10">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="722" y="862" as="sourcePoint" />
+            <mxPoint x="832" y="862" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="_yMUAO5hqo5q55LErs8j-215" edge="1" parent="1" source="11" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=ERoneToMany;endFill=0;startArrow=ERmandOne;startFill=0;entryX=0;entryY=0.25;entryDx=0;entryDy=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" target="16">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="116" y="1774" as="sourcePoint" />
+            <mxPoint x="423" y="1774" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="_yMUAO5hqo5q55LErs8j-216" edge="1" parent="1" source="5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=ERoneToMany;endFill=0;startArrow=ERmandOne;startFill=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;exitX=0.5;exitY=0;exitDx=0;exitDy=0;" target="6">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="-648" y="1224" as="sourcePoint" />
+            <mxPoint x="-341" y="1224" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="_yMUAO5hqo5q55LErs8j-217" edge="1" parent="1" source="6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=ERoneToMany;endFill=0;startArrow=ERmandOne;startFill=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;" target="8">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="-728" y="1112" as="sourcePoint" />
+            <mxPoint x="-421" y="1112" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="_yMUAO5hqo5q55LErs8j-218" edge="1" parent="1" source="7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=ERoneToMany;endFill=0;startArrow=ERmandOne;startFill=0;entryX=0;entryY=0.75;entryDx=0;entryDy=0;exitX=0.5;exitY=0;exitDx=0;exitDy=0;" target="8">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="-715" y="1101" as="sourcePoint" />
+            <mxPoint x="-408" y="1101" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="_yMUAO5hqo5q55LErs8j-219" edge="1" parent="1" source="5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=ERoneToMany;endFill=0;startArrow=ERmandOne;startFill=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;" target="12">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="-707" y="1166" as="sourcePoint" />
+            <mxPoint x="-400" y="1166" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="_yMUAO5hqo5q55LErs8j-220" edge="1" parent="1" source="8" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=ERoneToMany;endFill=0;startArrow=ERmandOne;startFill=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;edgeStyle=orthogonalEdgeStyle;" target="11">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="168" y="1261" as="sourcePoint" />
+            <mxPoint x="475" y="1261" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="_yMUAO5hqo5q55LErs8j-221" edge="1" parent="1" source="15" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=ERoneToMany;endFill=0;startArrow=ERmandOne;startFill=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;" target="16">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="126" y="1784" as="sourcePoint" />
+            <mxPoint x="433" y="1784" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="_yMUAO5hqo5q55LErs8j-222" edge="1" parent="1" source="11" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=ERoneToMany;endFill=0;startArrow=ERmandOne;startFill=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;exitX=0;exitY=0.5;exitDx=0;exitDy=0;" target="12">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="-27" y="1654" as="sourcePoint" />
+            <mxPoint x="280" y="1654" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

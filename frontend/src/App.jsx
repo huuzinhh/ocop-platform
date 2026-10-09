@@ -153,7 +153,7 @@ function App() {
     ...(isProducer() || isAdmin() ? [
       {
         key: 'admin-orders',
-        label: 'Quản lý đơn hàng (HTX / Admin)',
+        label: isAdmin() ? 'Quản lý toàn bộ đơn hàng (Admin)' : 'Quản lý đơn hàng (Cơ sở sản xuất)',
         icon: <OrderedListOutlined />,
         onClick: () => setAdminOrdersModalOpen(true),
       },
@@ -225,7 +225,7 @@ function App() {
                 onClick={() => setAdminOrdersModalOpen(true)}
                 style={{ background: 'rgba(255,255,255,0.2)', color: '#fff', border: '1px solid rgba(255,255,255,0.4)', fontWeight: 'bold' }}
               >
-                Quản lý đơn
+                {isAdmin() ? 'Quản lý đơn (Admin)' : 'Quản lý đơn (Cơ sở)'}
               </Button>
               <Button
                 type="primary"

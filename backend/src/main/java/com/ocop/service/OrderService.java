@@ -35,6 +35,9 @@ public class OrderService {
     @Autowired
     private PaymentRepository paymentRepository;
 
+    @Autowired
+    private ProducerRepository producerRepository;
+
     private String generateOrderCode() {
         String datePart = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
         int rand = 1000 + new Random().nextInt(9000);
@@ -127,9 +130,70 @@ public class OrderService {
                 .collect(Collectors.toList());
     }
 
+    public List<OrderDto> getProducerOrders(String username) {
+        User user = userRepository.findByUsernameOrEmail(username, username)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy tài khoản: " + username));
+
+        Producer producer = producerRepository.findByUserId(user.getId()).orElse(null);
+        if (producer == null) {
+            boolean isProducerRole = user.getRoles().stream().anyMatch(r -> "ROLE_PRODUCER".equals(r.getName()));
+            if (isProducerRole) {
+                producer = new Producer();
+                producer.setUser(user);
+                producer.setName(user.getFullName() != null && !user.getFullName().trim().isEmpty() 
+                        ? user.getFullName().trim() : "Cơ sở " + user.getUsername());
+                producer.setCode("PROD-" + user.getUsername().toUpperCase() + "-" + (System.currentTimeMillis() % 100000));
+                producer.setDescription("Cơ sở sản xuất đặc sản OCOP " + user.getFullName());
+                producer.setContactEmail(user.getEmail());
+                producer.setPhone(user.getPhone());
+                producer.setIsVerified(true);
+                producer = producerRepository.save(producer);
+            } else {
+                return java.util.Collections.emptyList();
+            }
+        }
+
+        final Long producerId = producer.getId();
+        List<Order> orders = orderRepository.findOrdersByProducerId(producerId);
+        return orders.stream()
+                .map(order -> OrderDto.fromEntityForProducer(order, producerId))
+                .collect(Collectors.toList());
+    }
+
     public OrderDto getOrderByCode(String orderCode) {
+        return getOrderByCode(null, orderCode);
+    }
+
+    public OrderDto getOrderByCode(String username, String orderCode) {
         Order order = orderRepository.findByOrderCode(orderCode)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng: " + orderCode));
+
+        if (username == null) {
+            return OrderDto.fromEntity(order);
+        }
+
+        User user = userRepository.findByUsernameOrEmail(username, username)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy tài khoản: " + username));
+
+        boolean isAdmin = user.getRoles().stream()
+                .anyMatch(r -> "ROLE_ADMIN".equals(r.getName()));
+
+        boolean isCustomerOwner = order.getUser().getId().equals(user.getId());
+
+        Producer producer = producerRepository.findByUserId(user.getId()).orElse(null);
+        boolean isProducerOwner = producer != null && order.getItems().stream()
+                .anyMatch(item -> item.getProduct() != null &&
+                        item.getProduct().getProducer() != null &&
+                        producer.getId().equals(item.getProduct().getProducer().getId()));
+
+        if (!isAdmin && !isCustomerOwner && !isProducerOwner) {
+            throw new RuntimeException("Bạn không có quyền xem thông tin đơn hàng này");
+        }
+
+        if (!isAdmin && !isCustomerOwner && isProducerOwner) {
+            return OrderDto.fromEntityForProducer(order, producer.getId());
+        }
+
         return OrderDto.fromEntity(order);
     }
 
@@ -159,14 +223,57 @@ public class OrderService {
     }
 
     public OrderDto updateOrderStatus(String orderCode, String newStatus) {
+        return updateOrderStatus(null, orderCode, newStatus);
+    }
+
+    public OrderDto updateOrderStatus(String username, String orderCode, String newStatus) {
         Order order = orderRepository.findByOrderCode(orderCode)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng: " + orderCode));
+
+        Producer producer = null;
+        if (username != null) {
+            User user = userRepository.findByUsernameOrEmail(username, username)
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy tài khoản: " + username));
+
+            boolean isAdmin = user.getRoles().stream()
+                    .anyMatch(r -> "ROLE_ADMIN".equals(r.getName()));
+
+            if (!isAdmin) {
+                producer = producerRepository.findByUserId(user.getId()).orElse(null);
+                if (producer == null) {
+                    producer = new Producer();
+                    producer.setUser(user);
+                    producer.setName(user.getFullName() != null && !user.getFullName().trim().isEmpty() 
+                            ? user.getFullName().trim() : "Cơ sở " + user.getUsername());
+                    producer.setCode("PROD-" + user.getUsername().toUpperCase() + "-" + (System.currentTimeMillis() % 100000));
+                    producer.setDescription("Cơ sở sản xuất đặc sản OCOP " + user.getFullName());
+                    producer.setContactEmail(user.getEmail());
+                    producer.setPhone(user.getPhone());
+                    producer.setIsVerified(true);
+                    producer = producerRepository.save(producer);
+                }
+
+                final Long prodId = producer.getId();
+                boolean hasProducerItem = order.getItems().stream()
+                        .anyMatch(item -> item.getProduct() != null &&
+                                item.getProduct().getProducer() != null &&
+                                prodId.equals(item.getProduct().getProducer().getId()));
+
+                if (!hasProducerItem) {
+                    throw new RuntimeException("Bạn không có quyền cập nhật đơn hàng này vì đơn không chứa sản phẩm của cơ sở bạn.");
+                }
+            }
+        }
 
         order.setStatus(newStatus.toUpperCase());
         if ("DELIVERED".equalsIgnoreCase(newStatus) && order.getShipment() != null) {
             order.getShipment().setStatus("DELIVERED");
         }
         orderRepository.save(order);
+
+        if (producer != null) {
+            return OrderDto.fromEntityForProducer(order, producer.getId());
+        }
         return OrderDto.fromEntity(order);
     }
 }

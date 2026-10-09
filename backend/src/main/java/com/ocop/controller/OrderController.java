@@ -56,21 +56,46 @@ public class OrderController {
     }
 
     @GetMapping("/all")
-    @Operation(summary = "Lấy toàn bộ đơn hàng hệ thống (Dành riêng cho Quản trị viên / Nhà sản xuất)")
+    @Operation(summary = "Lấy danh sách đơn hàng quản lý (Toàn bộ đối với Admin, chỉ đơn của mình đối với Nhà sản xuất)")
     @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_PRODUCER')")
-    public ResponseEntity<ApiResponse<List<OrderDto>>> getAllOrders() {
-        List<OrderDto> orders = orderService.getAllOrders();
+    public ResponseEntity<ApiResponse<List<OrderDto>>> getAllOrders(Authentication authentication) {
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return ResponseEntity.status(401).body(ApiResponse.error("Vui lòng đăng nhập"));
+        }
+        boolean isAdmin = authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+
+        List<OrderDto> orders;
+        if (isAdmin) {
+            orders = orderService.getAllOrders();
+        } else {
+            orders = orderService.getProducerOrders(authentication.getName());
+        }
         return ResponseEntity.ok(ApiResponse.ok(orders, "Lấy danh sách đơn hàng thành công"));
+    }
+
+    @GetMapping("/producer")
+    @Operation(summary = "Lấy danh sách đơn hàng chứa sản phẩm của Nhà sản xuất đang đăng nhập")
+    @PreAuthorize("hasAuthority('ROLE_PRODUCER')")
+    public ResponseEntity<ApiResponse<List<OrderDto>>> getProducerOrders(Authentication authentication) {
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return ResponseEntity.status(401).body(ApiResponse.error("Vui lòng đăng nhập"));
+        }
+        List<OrderDto> orders = orderService.getProducerOrders(authentication.getName());
+        return ResponseEntity.ok(ApiResponse.ok(orders, "Lấy danh sách đơn hàng nhà sản xuất thành công"));
     }
 
     @GetMapping("/{orderCode}")
     @Operation(summary = "Xem chi tiết một đơn hàng theo mã đơn (orderCode)")
-    public ResponseEntity<ApiResponse<OrderDto>> getOrderByCode(@PathVariable String orderCode) {
+    public ResponseEntity<ApiResponse<OrderDto>> getOrderByCode(
+            Authentication authentication,
+            @PathVariable String orderCode) {
         try {
-            OrderDto order = orderService.getOrderByCode(orderCode);
+            String username = (authentication != null && authentication.isAuthenticated()) ? authentication.getName() : null;
+            OrderDto order = orderService.getOrderByCode(username, orderCode);
             return ResponseEntity.ok(ApiResponse.ok(order, "Lấy chi tiết đơn hàng thành công"));
         } catch (Exception e) {
-            return ResponseEntity.status(404).body(ApiResponse.error(e.getMessage()));
+            return ResponseEntity.status(403).body(ApiResponse.error(e.getMessage()));
         }
     }
 
@@ -95,6 +120,7 @@ public class OrderController {
     @Operation(summary = "Cập nhật trạng thái đơn hàng (CONFIRMED, SHIPPING, DELIVERED, CANCELLED)")
     @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_PRODUCER')")
     public ResponseEntity<ApiResponse<OrderDto>> updateOrderStatus(
+            Authentication authentication,
             @PathVariable String orderCode,
             @RequestBody Map<String, String> body) {
         String newStatus = body.get("status");
@@ -102,7 +128,8 @@ public class OrderController {
             return ResponseEntity.badRequest().body(ApiResponse.error("Thiếu trường status"));
         }
         try {
-            OrderDto order = orderService.updateOrderStatus(orderCode, newStatus);
+            String username = (authentication != null && authentication.isAuthenticated()) ? authentication.getName() : null;
+            OrderDto order = orderService.updateOrderStatus(username, orderCode, newStatus);
             return ResponseEntity.ok(ApiResponse.ok(order, "Cập nhật trạng thái đơn hàng thành công"));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
