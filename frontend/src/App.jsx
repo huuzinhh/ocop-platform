@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   Layout, Menu, Card, Row, Col, Tag, Typography, Rate, Button,
   Input, Select, Space, Spin, Alert, message, Avatar, Dropdown, Badge,
-  Modal, Divider, Popconfirm, Empty
+  Modal, Divider, Popconfirm, Empty, List, Timeline
 } from 'antd';
 import {
   ShopOutlined, EnvironmentOutlined, QrcodeOutlined,
@@ -10,9 +10,11 @@ import {
   SearchOutlined, SafetyCertificateOutlined, UserOutlined,
   LogoutOutlined, CrownOutlined, StarFilled, ShoppingCartOutlined,
   PlusCircleOutlined, HistoryOutlined, DeleteOutlined,
-  OrderedListOutlined, CompassOutlined, AuditOutlined
+  OrderedListOutlined, CompassOutlined, AuditOutlined, RiseOutlined,
+  AppstoreOutlined, TeamOutlined
 } from '@ant-design/icons';
 import { ocopApi } from './api/ocopApi';
+import { traceApi } from './api/traceApi';
 import { useAuth } from './context/AuthContext';
 import { useCart } from './context/CartContext';
 import AuthModal from './components/AuthModal';
@@ -21,6 +23,14 @@ import CheckoutModal from './components/CheckoutModal';
 import OrdersModal from './components/OrdersModal';
 import AdminOrdersModal from './components/AdminOrdersModal';
 import CreateProductModal from './components/CreateProductModal';
+import ProducerProductsModal from './components/ProducerProductsModal';
+import ProducerBatchesModal from './components/ProducerBatchesModal';
+import ProducerDashboardModal from './components/ProducerDashboardModal';
+import AdminCertificatesModal from './components/AdminCertificatesModal';
+import AdminUsersModal from './components/AdminUsersModal';
+import AdminCategoriesModal from './components/AdminCategoriesModal';
+import GisMap from './components/GisMap';
+import adminApi from './api/adminApi';
 
 const { Header, Content, Footer } = Layout;
 const { Title, Text, Paragraph } = Typography;
@@ -48,6 +58,13 @@ function App() {
   const [ordersModalOpen, setOrdersModalOpen] = useState(false);
   const [adminOrdersModalOpen, setAdminOrdersModalOpen] = useState(false);
   const [createProductOpen, setCreateProductOpen] = useState(false);
+  const [producerProductsModalOpen, setProducerProductsModalOpen] = useState(false);
+  const [producerBatchesModalOpen, setProducerBatchesModalOpen] = useState(false);
+  const [producerDashboardModalOpen, setProducerDashboardModalOpen] = useState(false);
+  const [adminCertificatesModalOpen, setAdminCertificatesModalOpen] = useState(false);
+  const [adminUsersModalOpen, setAdminUsersModalOpen] = useState(false);
+  const [adminCategoriesModalOpen, setAdminCategoriesModalOpen] = useState(false);
+  const [pendingCertCount, setPendingCertCount] = useState(0);
 
   // Data States
   const [healthStatus, setHealthStatus] = useState(null);
@@ -59,9 +76,10 @@ function App() {
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [detailModalVisible, setDetailModalVisible] = useState(false);
 
-  // QR / Trace simulation state
-  const [traceBatchCode, setTraceBatchCode] = useState('BATCH-FINHO-2026-001');
+  // QR / Trace state
+  const [traceBatchCode, setTraceBatchCode] = useState('BATCH-KD-202601');
   const [traceResult, setTraceResult] = useState(null);
+  const [traceLoading, setTraceLoading] = useState(false);
 
   const checkSystemHealth = async () => {
     setHealthLoading(true);
@@ -90,10 +108,58 @@ function App() {
     }
   };
 
+  const handleTraceLookup = async (overrideCode) => {
+    const code = (overrideCode || traceBatchCode || '').trim();
+    if (!code) {
+      message.warning('Vui lòng nhập mã lô sản xuất OCOP');
+      return;
+    }
+    setTraceLoading(true);
+    try {
+      const res = await traceApi.getTraceInfo(code);
+      if (res && res.success && res.data) {
+        setTraceResult(res.data);
+        message.success('Đã xác thực nguồn gốc lô sản xuất thành công!');
+      }
+    } catch (err) {
+      const msg = err.response?.data?.message || err.message || 'Không tìm thấy thông tin mã lô này';
+      message.error(msg);
+      setTraceResult(null);
+    } finally {
+      setTraceLoading(false);
+    }
+  };
+
   useEffect(() => {
     checkSystemHealth();
     loadProducts();
+
+    // Tự động kích hoạt tra cứu nếu người dùng quét mã QR có param ?trace=...
+    const urlParams = new URLSearchParams(window.location.search);
+    const traceParam = urlParams.get('trace');
+    if (traceParam) {
+      setActiveNav('trace');
+      setTraceBatchCode(traceParam);
+      handleTraceLookup(traceParam);
+    }
   }, []);
+
+  const loadCertStats = async () => {
+    if (isAdmin()) {
+      try {
+        const res = await adminApi.getCertificateStats();
+        if (res && res.success) {
+          setPendingCertCount(res.data?.pending || 0);
+        }
+      } catch {
+        // ignore
+      }
+    }
+  };
+
+  useEffect(() => {
+    loadCertStats();
+  }, [currentUser]);
 
   const handleLogout = () => {
     logout();
@@ -107,28 +173,6 @@ function App() {
       return;
     }
     await addToCart(item.id, 1);
-  };
-
-  const handleTraceLookup = () => {
-    if (!traceBatchCode.trim()) {
-      message.warning('Vui lòng nhập mã lô sản xuất OCOP');
-      return;
-    }
-    setTraceResult({
-      batchCode: traceBatchCode,
-      productName: 'Trà Shan Tuyết Cổ Thụ Fìn Hò',
-      producer: 'HTX Chè Shan Tuyết Fìn Hò',
-      province: 'Hà Giang',
-      starRating: 5,
-      harvestDate: '10/09/2026',
-      expDate: '10/09/2028',
-      certCode: 'OCOP-HG-2024-001',
-      events: [
-        { type: 'HARVEST', title: 'Thu hái búp tươi 1 tôm 2 lá', time: '10/09/2026 06:30', actor: 'Tổ thu hái HTX Fìn Hò', hash: '1e2f3a4b...5a6b' },
-        { type: 'PROCESSING', title: 'Lên men & sao chảo gang truyền thống', time: '10/09/2026 14:00', actor: 'Nghệ nhân Đặng Văn Nam', hash: '2f3a4b5c...7c8d' },
-        { type: 'PACKAGING', title: 'Hút chân không & Dán tem QR OCOP', time: '11/09/2026 09:00', actor: 'Xưởng đóng gói Fìn Hò', hash: '3a4b5c6d...9e0f' },
-      ]
-    });
   };
 
   // Menu dropdown khi đã đăng nhập
@@ -152,6 +196,24 @@ function App() {
     },
     ...(isProducer() || isAdmin() ? [
       {
+        key: 'producer-dashboard',
+        label: isAdmin() ? 'Dashboard Thống kê toàn sàn (Admin)' : 'Thống kê & Hiệu quả bán hàng cơ sở',
+        icon: <RiseOutlined />,
+        onClick: () => setProducerDashboardModalOpen(true),
+      },
+      {
+        key: 'producer-products',
+        label: isAdmin() ? 'Quản lý toàn bộ sản phẩm (Admin)' : 'Quản lý sản phẩm & tồn kho cơ sở',
+        icon: <ShopOutlined />,
+        onClick: () => setProducerProductsModalOpen(true),
+      },
+      {
+        key: 'producer-batches',
+        label: 'Quản lý Lô sản xuất & Mã QR Blockchain',
+        icon: <QrcodeOutlined />,
+        onClick: () => setProducerBatchesModalOpen(true),
+      },
+      {
         key: 'admin-orders',
         label: isAdmin() ? 'Quản lý toàn bộ đơn hàng (Admin)' : 'Quản lý đơn hàng (Cơ sở sản xuất)',
         icon: <OrderedListOutlined />,
@@ -162,7 +224,34 @@ function App() {
         label: 'Đăng bán sản phẩm OCOP',
         icon: <PlusCircleOutlined />,
         onClick: () => setCreateProductOpen(true),
-      }
+      },
+      ...(isAdmin() ? [
+        {
+          key: 'admin-certs',
+          label: (
+            <span>
+              Thẩm định Chứng nhận OCOP{' '}
+              {pendingCertCount > 0 && (
+                <Badge count={pendingCertCount} size="small" style={{ backgroundColor: '#fa8c16' }} />
+              )}
+            </span>
+          ),
+          icon: <SafetyCertificateOutlined style={{ color: '#52c41a' }} />,
+          onClick: () => setAdminCertificatesModalOpen(true),
+        },
+        {
+          key: 'admin-users',
+          label: 'Quản lý Người dùng & Cơ sở sản xuất',
+          icon: <TeamOutlined style={{ color: '#1890ff' }} />,
+          onClick: () => setAdminUsersModalOpen(true),
+        },
+        {
+          key: 'admin-categories',
+          label: 'Quản lý Danh mục Ngành hàng OCOP',
+          icon: <AppstoreOutlined style={{ color: '#1b5e20' }} />,
+          onClick: () => setAdminCategoriesModalOpen(true),
+        },
+      ] : [])
     ] : []),
     {
       key: 'swagger',
@@ -221,12 +310,68 @@ function App() {
             <Space>
               <Button
                 type="default"
+                icon={<RiseOutlined />}
+                onClick={() => setProducerDashboardModalOpen(true)}
+                style={{ background: 'rgba(255,255,255,0.2)', color: '#fff', border: '1px solid rgba(255,255,255,0.4)', fontWeight: 'bold' }}
+              >
+                Thống kê
+              </Button>
+              <Button
+                type="default"
+                icon={<ShopOutlined />}
+                onClick={() => setProducerProductsModalOpen(true)}
+                style={{ background: 'rgba(255,255,255,0.2)', color: '#fff', border: '1px solid rgba(255,255,255,0.4)', fontWeight: 'bold' }}
+              >
+                {isAdmin() ? 'Quản lý SP' : 'Sản phẩm'}
+              </Button>
+              <Button
+                type="default"
+                icon={<QrcodeOutlined />}
+                onClick={() => setProducerBatchesModalOpen(true)}
+                style={{ background: 'rgba(255,255,255,0.2)', color: '#fff', border: '1px solid rgba(255,255,255,0.4)', fontWeight: 'bold' }}
+              >
+                Lô & QR
+              </Button>
+              <Button
+                type="default"
                 icon={<OrderedListOutlined />}
                 onClick={() => setAdminOrdersModalOpen(true)}
                 style={{ background: 'rgba(255,255,255,0.2)', color: '#fff', border: '1px solid rgba(255,255,255,0.4)', fontWeight: 'bold' }}
               >
-                {isAdmin() ? 'Quản lý đơn (Admin)' : 'Quản lý đơn (Cơ sở)'}
+                {isAdmin() ? 'Đơn hàng (Admin)' : 'Đơn hàng'}
               </Button>
+              {isAdmin() && (
+                <Badge count={pendingCertCount} offset={[-4, 4]} style={{ backgroundColor: '#fa8c16' }}>
+                  <Button
+                    type="default"
+                    icon={<SafetyCertificateOutlined />}
+                    onClick={() => setAdminCertificatesModalOpen(true)}
+                    style={{ background: '#52c41a', color: '#fff', border: '1px solid #73d13d', fontWeight: 'bold' }}
+                  >
+                    Thẩm định OCOP
+                  </Button>
+                </Badge>
+              )}
+              {isAdmin() && (
+                <Button
+                  type="default"
+                  icon={<TeamOutlined />}
+                  onClick={() => setAdminUsersModalOpen(true)}
+                  style={{ background: 'rgba(255,255,255,0.2)', color: '#fff', border: '1px solid rgba(255,255,255,0.4)', fontWeight: 'bold' }}
+                >
+                  Người dùng
+                </Button>
+              )}
+              {isAdmin() && (
+                <Button
+                  type="default"
+                  icon={<AppstoreOutlined />}
+                  onClick={() => setAdminCategoriesModalOpen(true)}
+                  style={{ background: 'rgba(255,255,255,0.2)', color: '#fff', border: '1px solid rgba(255,255,255,0.4)', fontWeight: 'bold' }}
+                >
+                  Danh mục
+                </Button>
+              )}
               <Button
                 type="primary"
                 icon={<PlusCircleOutlined />}
@@ -383,6 +528,24 @@ function App() {
                           >
                             OCOP {item.ocopStarRating}★
                           </Tag>
+                          {item.ocopCertificate?.status === 'APPROVED' && (
+                            <Tag
+                              color="success"
+                              icon={<SafetyCertificateOutlined />}
+                              style={{
+                                position: 'absolute',
+                                top: 10,
+                                left: 10,
+                                fontWeight: 'bold',
+                                background: 'rgba(255, 255, 255, 0.95)',
+                                color: '#237804',
+                                borderColor: '#b7eb8f',
+                                boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                              }}
+                            >
+                              ✓ Đã Thẩm Định
+                            </Tag>
+                          )}
                         </div>
                       }
                       styles={{ body: { flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: 16 } }}
@@ -439,56 +602,18 @@ function App() {
           <div>
             <div style={{ marginBottom: 20 }}>
               <Title level={2} style={{ color: '#1b5e20', margin: 0 }}>
-                Bản Đồ Vùng Sản Xuất & Hợp Tác Xã OCOP
+                Bản Đồ Số Vùng Sản Xuất & Chủ Thể OCOP Việt Nam
               </Title>
               <Text type="secondary">
-                Định vị không gian địa lý (GIS) các vùng nguyên liệu và chủ thể OCOP trên toàn quốc (Kế hoạch chính thức Tuần 4)
+                Định vị không gian địa lý (GIS) vùng nguyên liệu, khám phá đặc sản OCOP bảo chứng và kết nối trực tiếp với các Hợp tác xã trên toàn quốc
               </Text>
             </div>
-
-            <Row gutter={[20, 20]}>
-              <Col xs={24} md={16}>
-                <Card style={{ borderRadius: 10, background: '#e8f5e9', minHeight: 420, display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', border: '2px dashed #81c784' }}>
-                  <div>
-                    <CompassOutlined style={{ fontSize: 56, color: '#2e7d32', marginBottom: 16 }} />
-                    <Title level={4} style={{ color: '#1b5e20' }}>Bản đồ GIS Leaflet + OpenStreetMap</Title>
-                    <Paragraph style={{ maxWidth: 500, margin: '0 auto 16px', color: '#555' }}>
-                      Hiển thị các Marker tương tác tại tọa độ thực tế: <b>Hà Giang (22.77, 104.91)</b>, <b>Kon Tum (14.98, 107.95)</b>, <b>Bến Tre (10.24, 106.37)</b>, <b>Sơn La (20.84, 104.64)</b>.
-                    </Paragraph>
-                    <Tag color="green" style={{ padding: '6px 12px', fontSize: 13 }}>
-                      🚀 Sẽ tích hợp toàn diện Leaflet Map + Marker Popup tại Tuần 4
-                    </Tag>
-                  </div>
-                </Card>
-              </Col>
-              <Col xs={24} md={8}>
-                <Card title="Chủ thể OCOP tiêu biểu" style={{ borderRadius: 10 }}>
-                  <List
-                    size="small"
-                    dataSource={[
-                      { name: 'HTX Chè Shan Tuyết Fìn Hò', province: 'Hà Giang', star: 5, lat: '22.77 N', lng: '104.91 E' },
-                      { name: 'HTX Dược liệu Sâm Ngọc Linh', province: 'Kon Tum', star: 5, lat: '14.98 N', lng: '107.95 E' },
-                      { name: 'HTX Bưởi Da Xanh Giồng Trôm', province: 'Bến Tre', star: 4, lat: '10.24 N', lng: '106.37 E' },
-                      { name: 'HTX Nông nghiệp Mộc Châu', province: 'Sơn La', star: 4, lat: '20.84 N', lng: '104.64 E' },
-                    ]}
-                    renderItem={(item) => (
-                      <List.Item>
-                        <List.Item.Meta
-                          avatar={<EnvironmentOutlined style={{ color: '#1b5e20', fontSize: 20 }} />}
-                          title={<b>{item.name}</b>}
-                          description={
-                            <div>
-                              <span>{item.province} ({item.lat}, {item.lng})</span><br />
-                              <Tag color="gold" icon={<StarFilled />}>OCOP {item.star}★</Tag>
-                            </div>
-                          }
-                        />
-                      </List.Item>
-                    )}
-                  />
-                </Card>
-              </Col>
-            </Row>
+            <GisMap
+              onSelectProduct={(p) => {
+                setSelectedProduct(p);
+                setDetailModalVisible(true);
+              }}
+            />
           </div>
         )}
 
@@ -500,73 +625,174 @@ function App() {
                 Tra Cứu & Truy Xuất Nguồn Gốc OCOP
               </Title>
               <Text type="secondary">
-                Kiểm tra tính toàn vẹn chuỗi cung ứng bằng mã băm SHA-256 & Smart Contract Blockchain (Tuần 5 & 6)
+                Xác thực tính toàn vẹn chuỗi cung ứng bằng mã băm SHA-256 và Sổ cái Blockchain bất biến
               </Text>
             </div>
 
-            <Card style={{ borderRadius: 10, marginBottom: 20 }}>
-              <Space.Compact style={{ width: '100%', maxWidth: 600 }}>
+            <Card style={{ borderRadius: 10, marginBottom: 24, boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+              <Space.Compact style={{ width: '100%', maxWidth: 640 }}>
                 <Input
                   size="large"
-                  placeholder="Nhập mã lô sản xuất (Ví dụ: BATCH-FINHO-2026-001)"
+                  placeholder="Nhập mã lô sản xuất OCOP (Ví dụ: BATCH-2026-FINHO-01)"
                   value={traceBatchCode}
                   onChange={(e) => setTraceBatchCode(e.target.value)}
-                  prefix={<QrcodeOutlined />}
+                  onPressEnter={() => handleTraceLookup()}
+                  prefix={<QrcodeOutlined style={{ color: '#1b5e20' }} />}
                 />
                 <Button
                   type="primary"
                   size="large"
-                  onClick={handleTraceLookup}
+                  loading={traceLoading}
+                  onClick={() => handleTraceLookup()}
                   style={{ background: '#1b5e20', fontWeight: 'bold' }}
                 >
                   Tra Cứu Nguồn Gốc
                 </Button>
               </Space.Compact>
+              <div style={{ marginTop: 8, fontSize: 12, color: '#888' }}>
+                💡 Gợi ý mã lô mẫu có sẵn: <code>BATCH-2026-FINHO-01</code> (Chè Shan Tuyết Fìn Hò)
+              </div>
             </Card>
 
-            {traceResult && (
+            {traceLoading ? (
+              <div style={{ textAlign: 'center', padding: '60px 0' }}>
+                <Spin size="large" description="Đang truy xuất và đối chiếu sổ cái Blockchain..." />
+              </div>
+            ) : traceResult ? (
               <Card
                 title={
-                  <Space>
-                    <SafetyCertificateOutlined style={{ color: '#52c41a', fontSize: 20 }} />
-                    <span>Kết quả truy xuất: <b>{traceResult.productName}</b></span>
-                    <Tag color="gold"><StarFilled /> OCOP {traceResult.starRating}★</Tag>
-                  </Space>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+                    <Space>
+                      <SafetyCertificateOutlined style={{ color: '#52c41a', fontSize: 22 }} />
+                      <span style={{ fontSize: 16 }}>Kết quả truy xuất: <b>{traceResult.productName}</b></span>
+                      <Tag color="gold" style={{ fontWeight: 'bold' }}><StarFilled /> OCOP {traceResult.ocopStarRating}★</Tag>
+                    </Space>
+                    <Tag color="green" icon={<CheckCircleOutlined />} style={{ fontSize: 12, padding: '4px 10px' }}>
+                      BẢO CHỨNG BLOCKCHAIN: {traceResult.blockchainStatus || 'COMMITTED'}
+                    </Tag>
+                  </div>
                 }
-                style={{ borderRadius: 10, borderColor: '#b7eb8f' }}
+                style={{ borderRadius: 10, borderColor: '#b7eb8f', boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}
               >
-                <Row gutter={[16, 16]}>
-                  <Col xs={24} md={8}>
-                    <div style={{ background: '#f6ffed', padding: 16, borderRadius: 8 }}>
-                      <p><b>Mã Lô:</b> <Tag color="blue">{traceResult.batchCode}</Tag></p>
-                      <p><b>Hợp tác xã:</b> {traceResult.producer}</p>
-                      <p><b>Xuất xứ:</b> {traceResult.province}</p>
-                      <p><b>Ngày thu hoạch:</b> {traceResult.harvestDate}</p>
-                      <p><b>Hạn sử dụng:</b> {traceResult.expDate}</p>
-                      <p><b>Mã chứng nhận:</b> <Tag color="green">{traceResult.certCode}</Tag></p>
-                    </div>
-                  </Col>
-                  <Col xs={24} md={16}>
-                    <Title level={5} style={{ color: '#1b5e20' }}>📜 Dòng thời gian chuỗi cung ứng (Supply Chain Events):</Title>
-                    <List
-                      dataSource={traceResult.events}
-                      renderItem={(ev, idx) => (
-                        <Card size="small" style={{ marginBottom: 10, background: '#fafafa' }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <Text strong>{idx + 1}. {ev.title}</Text>
-                            <Tag color="purple">{ev.type}</Tag>
-                          </div>
-                          <div style={{ fontSize: 12, color: '#777', marginTop: 4 }}>
-                            <span>Thời gian: {ev.time} | Thực hiện: <b>{ev.actor}</b></span>
-                            <div>Mã băm dữ liệu (SHA-256): <code>{ev.hash}</code></div>
-                          </div>
-                        </Card>
+                <Alert
+                  type="success"
+                  showIcon
+                  message="Dữ liệu chuỗi cung ứng toàn vẹn & minh bạch"
+                  description="Mọi hoạt động thu hái, chế biến, kiểm định và đóng gói của lô hàng này đã được băm SHA-256 và ký số trên Sổ cái Blockchain. Không thể làm giả hoặc chỉnh sửa thời gian hồi tố."
+                  style={{ marginBottom: 20 }}
+                />
+
+                <Row gutter={[24, 24]}>
+                  {/* CỘT TRÁI: THÔNG TIN LÔ HÀNG, CƠ SỞ & CHỨNG NHẬN */}
+                  <Col xs={24} lg={10}>
+                    {/* THẺ SẢN PHẨM & TEM QR */}
+                    <Card size="small" style={{ marginBottom: 16, background: '#f6ffed', borderColor: '#b7eb8f' }}>
+                      <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+                        <img
+                          src={traceResult.qrCodeUrl}
+                          alt="Tem QR"
+                          style={{ width: 100, height: 100, borderRadius: 6, border: '1px solid #d9d9d9', background: '#fff', padding: 4 }}
+                        />
+                        <div>
+                          <div style={{ fontSize: 12, color: '#666' }}>Mã Lô Sản Xuất:</div>
+                          <Tag color="blue" style={{ fontSize: 14, fontWeight: 'bold', margin: '4px 0' }}>
+                            {traceResult.batchCode}
+                          </Tag>
+                          <div style={{ fontSize: 12 }}><b>Quy mô lô:</b> {traceResult.quantity?.toLocaleString('vi-VN')} {traceResult.unit || 'Hộp'}</div>
+                          <div style={{ fontSize: 12 }}><b>NSX:</b> {traceResult.manufactureDate} | <b>HSD:</b> {traceResult.expiryDate}</div>
+                        </div>
+                      </div>
+                    </Card>
+
+                    {/* THẺ NHÀ SẢN XUẤT */}
+                    <Card size="small" title="🏛️ Hợp Tác Xã / Cơ Sở Sản Xuất" style={{ marginBottom: 16 }}>
+                      <p style={{ margin: '4px 0' }}><b>Tên cơ sở:</b> {traceResult.producerName}</p>
+                      <p style={{ margin: '4px 0' }}><b>Mã cơ sở:</b> <code>{traceResult.producerCode}</code></p>
+                      <p style={{ margin: '4px 0' }}><b>Xuất xứ địa lý:</b> {traceResult.producerAddress ? `${traceResult.producerAddress}, ` : ''}{traceResult.producerProvince}</p>
+                      {traceResult.producerPhone && <p style={{ margin: '4px 0' }}><b>Hotline liên hệ:</b> {traceResult.producerPhone}</p>}
+                      <div style={{ marginTop: 8 }}>
+                        {traceResult.isProducerVerified ? (
+                          <Tag color="green" icon={<CheckCircleOutlined />}>Đã thẩm định hồ sơ cơ sở ✓</Tag>
+                        ) : (
+                          <Tag color="orange">Đang trong tiến trình giám sát</Tag>
+                        )}
+                      </div>
+                    </Card>
+
+                    {/* THẺ CHỨNG NHẬN OCOP */}
+                    <Card size="small" title="📜 Chứng Nhận OCOP Cấp Thẩm Quyền" style={{ marginBottom: 16 }}>
+                      {traceResult.certificateCode ? (
+                        <div>
+                          <p style={{ margin: '4px 0' }}><b>Số hiệu giấy CN:</b> <Tag color="green">{traceResult.certificateCode}</Tag></p>
+                          <p style={{ margin: '4px 0' }}><b>Cơ quan cấp:</b> {traceResult.certIssuingAuthority}</p>
+                          <p style={{ margin: '4px 0' }}><b>Thời hạn hiệu lực:</b> {traceResult.certIssuedDate} đến {traceResult.certExpiryDate}</p>
+                        </div>
+                      ) : (
+                        <Text type="secondary">Chưa khai báo chi tiết số hiệu chứng chỉ.</Text>
                       )}
-                    />
+                    </Card>
+
+                    {/* THẺ BẢO CHỨNG BLOCKCHAIN */}
+                    <Card size="small" style={{ background: '#fafafa', border: '1px solid #d9d9d9' }}>
+                      <Text strong style={{ color: '#1b5e20', fontSize: 12 }}>🔗 Thông số mã hóa Blockchain:</Text>
+                      <div style={{ fontSize: 11, marginTop: 6 }}>
+                        <div><b>Mã băm dữ liệu gốc (SHA-256):</b></div>
+                        <code style={{ fontSize: 10, wordBreak: 'break-all', display: 'block', background: '#fff', padding: 4, borderRadius: 4, margin: '2px 0 6px' }}>
+                          {traceResult.rawDataHash}
+                        </code>
+                        <div><b>Mã giao dịch Blockchain Tx:</b></div>
+                        <code style={{ fontSize: 10, wordBreak: 'break-all', display: 'block', background: '#fff', padding: 4, borderRadius: 4, color: '#722ed1', margin: '2px 0' }}>
+                          {traceResult.blockchainTxHash}
+                        </code>
+                      </div>
+                    </Card>
+                  </Col>
+
+                  {/* CỘT PHẢI: DÒNG THỜI GIAN NHẬT KÝ CHUỖI CUNG ỨNG */}
+                  <Col xs={24} lg={14}>
+                    <Title level={4} style={{ color: '#1b5e20', marginBottom: 16 }}>
+                      📜 Dòng Thời Gian Nhật Ký Chuỗi Cung Ứng (Supply Chain Ledger)
+                    </Title>
+
+                    {(!traceResult.events || traceResult.events.length === 0) ? (
+                      <Empty description="Lô này chưa có nhật ký sự kiện chi tiết." />
+                    ) : (
+                      <Timeline
+                        items={traceResult.events.map((ev, idx) => (
+                          {
+                            color: ev.eventType === 'HARVEST' ? 'green' : ev.eventType === 'PROCESSING' ? 'volcano' : ev.eventType === 'QUALITY_INSPECTION' ? 'blue' : 'purple',
+                            children: (
+                              <Card size="small" style={{ marginBottom: 12, borderRadius: 8, background: '#fafafa', boxShadow: '0 1px 4px rgba(0,0,0,0.05)' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                  <Text strong style={{ fontSize: 14, color: '#1b5e20' }}>
+                                    {idx + 1}. {ev.eventName}
+                                  </Text>
+                                  <Tag color={ev.eventType === 'HARVEST' ? 'green' : ev.eventType === 'PROCESSING' ? 'volcano' : ev.eventType === 'QUALITY_INSPECTION' ? 'blue' : 'purple'}>
+                                    {ev.eventType}
+                                  </Tag>
+                                </div>
+                                {ev.description && (
+                                  <Paragraph style={{ margin: '6px 0', fontSize: 13, color: '#555' }}>
+                                    {ev.description}
+                                  </Paragraph>
+                                )}
+                                <Divider style={{ margin: '6px 0' }} />
+                                <div style={{ fontSize: 11, color: '#777' }}>
+                                  <div><b>Đơn vị / Người thực hiện:</b> {ev.actorName}</div>
+                                  <div><b>Thời gian ghi nhận:</b> {ev.eventTimestamp}</div>
+                                  <div><b>SHA-256 Hash:</b> <code style={{ fontSize: 10 }}>{ev.rawDataHash}</code></div>
+                                  <div><b>Tx Hash:</b> <code style={{ fontSize: 10, color: '#722ed1' }}>{ev.blockchainTxHash}</code></div>
+                                </div>
+                              </Card>
+                            ),
+                          }
+                        ))}
+                      />
+                    )}
                   </Col>
                 </Row>
               </Card>
-            )}
+            ) : null}
           </div>
         )}
       </Content>
@@ -623,6 +849,27 @@ function App() {
             </Card>
           )}
           <Divider style={{ margin: '16px 0' }} />
+          {selectedProduct.ocopCertificate && (
+            <Card size="small" style={{ background: '#f0f9eb', borderColor: '#b7eb8f', marginBottom: 16 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Space>
+                  <SafetyCertificateOutlined style={{ color: '#52c41a', fontSize: 18 }} />
+                  <Text strong style={{ color: '#1b5e20' }}>
+                    Hồ sơ OCOP: {selectedProduct.ocopCertificate.certificateCode}
+                  </Text>
+                </Space>
+                {selectedProduct.ocopCertificate.status === 'APPROVED' ? (
+                  <Tag color="success" style={{ fontWeight: 'bold' }}>✓ Đã Thẩm Định</Tag>
+                ) : (
+                  <Tag color="warning" style={{ fontWeight: 'bold' }}>⏳ Chờ Thẩm Định</Tag>
+                )}
+              </div>
+              <div style={{ fontSize: 12, color: '#555', marginTop: 8 }}>
+                <div><b>Cơ quan cấp quyết định:</b> {selectedProduct.ocopCertificate.issuingAuthority}</div>
+                <div><b>Thời hạn hiệu lực:</b> {selectedProduct.ocopCertificate.expiryDate ? dayjs(selectedProduct.ocopCertificate.expiryDate).format('DD/MM/YYYY') : '—'}</div>
+              </div>
+            </Card>
+          )}
           <div style={{ fontSize: 13, color: '#555' }}>
             <div><b>Cơ sở sản xuất:</b> {selectedProduct.producer?.name}</div>
             <div><b>Địa chỉ:</b> {selectedProduct.producer?.location?.address}, {selectedProduct.producer?.location?.province}</div>
@@ -649,6 +896,36 @@ function App() {
         open={createProductOpen}
         onClose={() => setCreateProductOpen(false)}
         onSuccess={() => loadProducts(selectedStar, searchQuery)}
+      />
+      <ProducerProductsModal
+        open={producerProductsModalOpen}
+        onClose={() => setProducerProductsModalOpen(false)}
+        onProductChange={() => loadProducts(selectedStar, searchQuery)}
+      />
+      <ProducerBatchesModal
+        open={producerBatchesModalOpen}
+        onClose={() => setProducerBatchesModalOpen(false)}
+      />
+      <ProducerDashboardModal
+        open={producerDashboardModalOpen}
+        onClose={() => setProducerDashboardModalOpen(false)}
+      />
+      <AdminCertificatesModal
+        open={adminCertificatesModalOpen}
+        onClose={() => setAdminCertificatesModalOpen(false)}
+        onCertUpdated={() => {
+          loadProducts(selectedStar, searchQuery);
+          loadCertStats();
+        }}
+      />
+      <AdminUsersModal
+        open={adminUsersModalOpen}
+        onClose={() => setAdminUsersModalOpen(false)}
+      />
+      <AdminCategoriesModal
+        open={adminCategoriesModalOpen}
+        onClose={() => setAdminCategoriesModalOpen(false)}
+        onCategoryChange={() => loadProducts(selectedStar, searchQuery)}
       />
     </Layout>
   );

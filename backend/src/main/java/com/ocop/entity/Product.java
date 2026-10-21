@@ -50,6 +50,9 @@ public class Product {
     @Column(length = 20)
     private String status = "ACTIVE";
 
+    @OneToOne(mappedBy = "product", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
+    private OcopCertificate ocopCertificate;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt = LocalDateTime.now();
 
@@ -176,5 +179,13 @@ public class Product {
 
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public OcopCertificate getOcopCertificate() {
+        return ocopCertificate;
+    }
+
+    public void setOcopCertificate(OcopCertificate ocopCertificate) {
+        this.ocopCertificate = ocopCertificate;
     }
 }

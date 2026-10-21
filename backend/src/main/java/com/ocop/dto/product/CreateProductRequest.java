@@ -1,7 +1,9 @@
 package com.ocop.dto.product;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.validation.constraints.*;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 
 public class CreateProductRequest {
 
@@ -34,6 +36,21 @@ public class CreateProductRequest {
     private Short ocopStarRating = 4;
 
     private String thumbnail;
+
+    private String status = "ACTIVE";
+
+    // Thông tin khai báo chứng nhận OCOP
+    private String certificateCode;
+
+    @JsonFormat(pattern = "yyyy-MM-dd")
+    private LocalDate issuedDate;
+
+    @JsonFormat(pattern = "yyyy-MM-dd")
+    private LocalDate expiryDate;
+
+    private String issuingAuthority;
+
+    private String documentUrl;
 
     public CreateProductRequest() {}
 
@@ -115,5 +132,53 @@ public class CreateProductRequest {
 
     public void setThumbnail(String thumbnail) {
         this.thumbnail = thumbnail;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
+    public String getCertificateCode() {
+        return certificateCode;
+    }
+
+    public void setCertificateCode(String certificateCode) {
+        this.certificateCode = certificateCode;
+    }
+
+    public LocalDate getIssuedDate() {
+        return issuedDate;
+    }
+
+    public void setIssuedDate(LocalDate issuedDate) {
+        this.issuedDate = issuedDate;
+    }
+
+    public LocalDate getExpiryDate() {
+        return expiryDate;
+    }
+
+    public void setExpiryDate(LocalDate expiryDate) {
+        this.expiryDate = expiryDate;
+    }
+
+    public String getIssuingAuthority() {
+        return issuingAuthority;
+    }
+
+    public void setIssuingAuthority(String issuingAuthority) {
+        this.issuingAuthority = issuingAuthority;
+    }
+
+    public String getDocumentUrl() {
+        return documentUrl;
+    }
+
+    public void setDocumentUrl(String documentUrl) {
+        this.documentUrl = documentUrl;
     }
 }

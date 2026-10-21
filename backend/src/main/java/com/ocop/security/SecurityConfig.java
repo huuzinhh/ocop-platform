@@ -51,8 +51,8 @@ public class SecurityConfig {
                 // Công khai: Toàn bộ API xác thực (Đăng ký, Đăng nhập)
                 .requestMatchers("/api/v1/auth/login", "/api/v1/auth/register").permitAll()
                 .requestMatchers("/api/v1/auth/**").permitAll()
-                // Công khai: Xem danh mục, danh sách sản phẩm OCOP và bản đồ
-                .requestMatchers(HttpMethod.GET, "/api/v1/products", "/api/v1/products/**", "/api/v1/categories", "/api/v1/categories/**", "/api/v1/gis/**").permitAll()
+                // Công khai: Xem danh mục, danh sách sản phẩm OCOP, bản đồ và truy xuất nguồn gốc QR
+                .requestMatchers(HttpMethod.GET, "/api/v1/products", "/api/v1/products/**", "/api/v1/categories", "/api/v1/categories/**", "/api/v1/gis/**", "/api/v1/trace/**").permitAll()
                 // Quyền quản lý sản phẩm: Chỉ Nhà sản xuất và Admin
                 .requestMatchers(HttpMethod.POST, "/api/v1/products", "/api/v1/products/**").hasAnyAuthority("ROLE_PRODUCER", "ROLE_ADMIN")
                 .requestMatchers(HttpMethod.PUT, "/api/v1/products", "/api/v1/products/**").hasAnyAuthority("ROLE_PRODUCER", "ROLE_ADMIN")

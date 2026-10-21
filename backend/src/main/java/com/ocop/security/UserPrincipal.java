@@ -20,15 +20,18 @@ public class UserPrincipal implements UserDetails {
     @JsonIgnore
     private String password;
 
+    private String status;
+
     private Collection<? extends GrantedAuthority> authorities;
 
-    public UserPrincipal(Long id, String username, String email, String fullName, String password,
+    public UserPrincipal(Long id, String username, String email, String fullName, String password, String status,
                          Collection<? extends GrantedAuthority> authorities) {
         this.id = id;
         this.username = username;
         this.email = email;
         this.fullName = fullName;
         this.password = password;
+        this.status = status;
         this.authorities = authorities;
     }
 
@@ -43,6 +46,7 @@ public class UserPrincipal implements UserDetails {
                 user.getEmail(),
                 user.getFullName(),
                 user.getPasswordHash(),
+                user.getStatus(),
                 authorities
         );
     }
@@ -81,7 +85,7 @@ public class UserPrincipal implements UserDetails {
 
     @Override
     public boolean isAccountNonLocked() {
-        return true;
+        return !"LOCKED".equalsIgnoreCase(status);
     }
 
     @Override
@@ -91,6 +95,6 @@ public class UserPrincipal implements UserDetails {
 
     @Override
     public boolean isEnabled() {
-        return true;
+        return !"INACTIVE".equalsIgnoreCase(status) && !"LOCKED".equalsIgnoreCase(status);
     }
 }

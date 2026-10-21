@@ -51,11 +51,6 @@ public class ProductController {
                 .orElse(ResponseEntity.status(404).body(ApiResponse.error("Không tìm thấy sản phẩm")));
     }
 
-    @GetMapping("/categories")
-    @Operation(summary = "Lấy danh sách toàn bộ danh mục sản phẩm OCOP")
-    public ApiResponse<List<Category>> getCategories() {
-        return ApiResponse.ok(productService.getAllCategories(), "Lấy danh mục thành công");
-    }
 
     @GetMapping("/products/my-products")
     @PreAuthorize("hasAnyAuthority('ROLE_PRODUCER', 'ROLE_ADMIN')")
@@ -101,12 +96,12 @@ public class ProductController {
     @PreAuthorize("hasAnyAuthority('ROLE_PRODUCER', 'ROLE_ADMIN')")
     @SecurityRequirement(name = "bearerAuth")
     @Operation(summary = "Xóa sản phẩm OCOP khỏi gian hàng")
-    public ResponseEntity<ApiResponse<Void>> deleteProduct(
+    public ResponseEntity<ApiResponse<String>> deleteProduct(
             Authentication authentication,
             @PathVariable Long id) {
         try {
-            productService.deleteProduct(authentication.getName(), id);
-            return ResponseEntity.ok(ApiResponse.ok(null, "Đã xóa sản phẩm thành công"));
+            String msg = productService.deleteProduct(authentication.getName(), id);
+            return ResponseEntity.ok(ApiResponse.ok(msg, msg));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(ApiResponse.error("Lỗi xóa: " + e.getMessage()));
         }

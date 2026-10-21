@@ -2,10 +2,13 @@ package com.ocop.service;
 
 import com.ocop.dto.product.CreateProductRequest;
 import com.ocop.entity.Category;
+import com.ocop.entity.OcopCertificate;
 import com.ocop.entity.Producer;
 import com.ocop.entity.Product;
 import com.ocop.entity.User;
 import com.ocop.repository.CategoryRepository;
+import com.ocop.repository.OcopCertificateRepository;
+import com.ocop.repository.OrderItemRepository;
 import com.ocop.repository.ProducerRepository;
 import com.ocop.repository.ProductRepository;
 import com.ocop.repository.UserRepository;
@@ -14,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.text.Normalizer;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Locale;
@@ -35,6 +39,12 @@ public class ProductService {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private OcopCertificateRepository ocopCertificateRepository;
+
+    @Autowired
+    private OrderItemRepository orderItemRepository;
 
     public List<Product> getAllProducts() {
         return productRepository.findAll();
@@ -151,11 +161,30 @@ public class ProductService {
         product.setUnit(request.getUnit() != null ? request.getUnit() : "Hộp");
         product.setOcopStarRating(request.getOcopStarRating() != null ? request.getOcopStarRating() : 4);
         product.setThumbnail(request.getThumbnail() != null && !request.getThumbnail().isEmpty() ? request.getThumbnail() : "https://placehold.co/400x300?text=OCOP+Product");
-        product.setStatus("ACTIVE");
+        product.setStatus(request.getStatus() != null && !request.getStatus().trim().isEmpty() ? request.getStatus().trim() : "ACTIVE");
         product.setCreatedAt(LocalDateTime.now());
         product.setUpdatedAt(LocalDateTime.now());
 
-        return productRepository.save(product);
+        Product savedProduct = productRepository.save(product);
+
+        // Lưu thông tin chứng nhận OCOP nếu được khai báo
+        if (request.getCertificateCode() != null && !request.getCertificateCode().trim().isEmpty()) {
+            OcopCertificate cert = new OcopCertificate();
+            cert.setProduct(savedProduct);
+            cert.setCertificateCode(request.getCertificateCode().trim());
+            cert.setStarRating(savedProduct.getOcopStarRating());
+            cert.setIssuedDate(request.getIssuedDate() != null ? request.getIssuedDate() : LocalDate.now().minusMonths(1));
+            cert.setExpiryDate(request.getExpiryDate() != null ? request.getExpiryDate() : LocalDate.now().plusYears(3));
+            cert.setIssuingAuthority(request.getIssuingAuthority() != null && !request.getIssuingAuthority().trim().isEmpty()
+                    ? request.getIssuingAuthority().trim() : "Ủy ban nhân dân Tỉnh / Thành phố");
+            cert.setDocumentUrl(request.getDocumentUrl());
+            cert.setIsSampleData(false);
+            cert.setStatus("PENDING");
+            ocopCertificateRepository.save(cert);
+            savedProduct.setOcopCertificate(cert);
+        }
+
+        return savedProduct;
     }
 
     @Transactional
@@ -193,18 +222,51 @@ public class ProductService {
         if (request.getUnit() != null) product.setUnit(request.getUnit());
         if (request.getOcopStarRating() != null) product.setOcopStarRating(request.getOcopStarRating());
         if (request.getThumbnail() != null) product.setThumbnail(request.getThumbnail());
+        if (request.getStatus() != null && !request.getStatus().trim().isEmpty()) {
+            product.setStatus(request.getStatus().trim());
+        }
         product.setUpdatedAt(LocalDateTime.now());
+
+        // Cập nhật hoặc khai báo bổ sung chứng nhận OCOP
+        if (request.getCertificateCode() != null && !request.getCertificateCode().trim().isEmpty()) {
+            OcopCertificate cert = product.getOcopCertificate();
+            if (cert == null) {
+                cert = ocopCertificateRepository.findByProductId(product.getId()).orElse(new OcopCertificate());
+                cert.setProduct(product);
+            }
+            cert.setCertificateCode(request.getCertificateCode().trim());
+            cert.setStarRating(product.getOcopStarRating());
+            if (request.getIssuedDate() != null) cert.setIssuedDate(request.getIssuedDate());
+            else if (cert.getIssuedDate() == null) cert.setIssuedDate(LocalDate.now().minusMonths(1));
+
+            if (request.getExpiryDate() != null) cert.setExpiryDate(request.getExpiryDate());
+            else if (cert.getExpiryDate() == null) cert.setExpiryDate(LocalDate.now().plusYears(3));
+
+            if (request.getIssuingAuthority() != null && !request.getIssuingAuthority().trim().isEmpty()) {
+                cert.setIssuingAuthority(request.getIssuingAuthority().trim());
+            } else if (cert.getIssuingAuthority() == null) {
+                cert.setIssuingAuthority("Hội đồng đánh giá phân hạng sản phẩm OCOP");
+            }
+            if (request.getDocumentUrl() != null) cert.setDocumentUrl(request.getDocumentUrl());
+            cert.setIsSampleData(false);
+            if (cert.getStatus() == null || "REJECTED".equalsIgnoreCase(cert.getStatus())) {
+                cert.setStatus("PENDING");
+                cert.setRejectionReason(null);
+            }
+            ocopCertificateRepository.save(cert);
+            product.setOcopCertificate(cert);
+        }
 
         return productRepository.save(product);
     }
 
     @Transactional
-    public void deleteProduct(Long id) {
-        deleteProduct(null, id);
+    public String deleteProduct(Long id) {
+        return deleteProduct(null, id);
     }
 
     @Transactional
-    public void deleteProduct(String username, Long id) {
+    public String deleteProduct(String username, Long id) {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy sản phẩm ID: " + id));
 
@@ -220,6 +282,15 @@ public class ProductService {
             }
         }
 
+        long orderCount = orderItemRepository.countByProductId(id);
+        if (orderCount > 0) {
+            product.setStatus("INACTIVE");
+            product.setUpdatedAt(LocalDateTime.now());
+            productRepository.save(product);
+            return "Sản phẩm đã có " + orderCount + " đơn hàng, đã tự động chuyển sang trạng thái 'Ngừng kinh doanh (Ẩn)' để lưu trữ lịch sử.";
+        }
+
         productRepository.delete(product);
+        return "Đã xóa sản phẩm thành công khỏi hệ thống.";
     }
 }
