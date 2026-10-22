@@ -307,9 +307,9 @@ function App() {
 
           {/* Nút Quản lý & Đăng sản phẩm cho Producer / Admin */}
           {isLoggedIn && (isProducer() || isAdmin()) && (
-            <Space>
+            <Space size={6}>
               <Button
-                type="default"
+                size="small"
                 icon={<RiseOutlined />}
                 onClick={() => setProducerDashboardModalOpen(true)}
                 style={{ background: 'rgba(255,255,255,0.2)', color: '#fff', border: '1px solid rgba(255,255,255,0.4)', fontWeight: 'bold' }}
@@ -317,15 +317,15 @@ function App() {
                 Thống kê
               </Button>
               <Button
-                type="default"
+                size="small"
                 icon={<ShopOutlined />}
                 onClick={() => setProducerProductsModalOpen(true)}
                 style={{ background: 'rgba(255,255,255,0.2)', color: '#fff', border: '1px solid rgba(255,255,255,0.4)', fontWeight: 'bold' }}
               >
-                {isAdmin() ? 'Quản lý SP' : 'Sản phẩm'}
+                Sản phẩm
               </Button>
               <Button
-                type="default"
+                size="small"
                 icon={<QrcodeOutlined />}
                 onClick={() => setProducerBatchesModalOpen(true)}
                 style={{ background: 'rgba(255,255,255,0.2)', color: '#fff', border: '1px solid rgba(255,255,255,0.4)', fontWeight: 'bold' }}
@@ -333,52 +333,69 @@ function App() {
                 Lô & QR
               </Button>
               <Button
-                type="default"
+                size="small"
                 icon={<OrderedListOutlined />}
                 onClick={() => setAdminOrdersModalOpen(true)}
                 style={{ background: 'rgba(255,255,255,0.2)', color: '#fff', border: '1px solid rgba(255,255,255,0.4)', fontWeight: 'bold' }}
               >
-                {isAdmin() ? 'Đơn hàng (Admin)' : 'Đơn hàng'}
+                Đơn hàng
               </Button>
+
+              {/* Admin-only: collapse 3 management buttons into 1 Dropdown */}
               {isAdmin() && (
-                <Badge count={pendingCertCount} offset={[-4, 4]} style={{ backgroundColor: '#fa8c16' }}>
-                  <Button
-                    type="default"
-                    icon={<SafetyCertificateOutlined />}
-                    onClick={() => setAdminCertificatesModalOpen(true)}
-                    style={{ background: '#52c41a', color: '#fff', border: '1px solid #73d13d', fontWeight: 'bold' }}
-                  >
-                    Thẩm định OCOP
-                  </Button>
-                </Badge>
-              )}
-              {isAdmin() && (
-                <Button
-                  type="default"
-                  icon={<TeamOutlined />}
-                  onClick={() => setAdminUsersModalOpen(true)}
-                  style={{ background: 'rgba(255,255,255,0.2)', color: '#fff', border: '1px solid rgba(255,255,255,0.4)', fontWeight: 'bold' }}
+                <Dropdown
+                  menu={{
+                    items: [
+                      {
+                        key: 'certs',
+                        icon: <SafetyCertificateOutlined />,
+                        label: (
+                          <Space>
+                            Thẩm định Chứng nhận OCOP
+                            {pendingCertCount > 0 && (
+                              <Badge count={pendingCertCount} style={{ backgroundColor: '#fa8c16' }} />
+                            )}
+                          </Space>
+                        ),
+                        onClick: () => setAdminCertificatesModalOpen(true),
+                      },
+                      {
+                        key: 'users',
+                        icon: <TeamOutlined />,
+                        label: 'Quản lý Người dùng & HTX',
+                        onClick: () => setAdminUsersModalOpen(true),
+                      },
+                      {
+                        key: 'categories',
+                        icon: <AppstoreOutlined />,
+                        label: 'Quản lý Danh mục Ngành hàng',
+                        onClick: () => setAdminCategoriesModalOpen(true),
+                      },
+                    ],
+                  }}
+                  trigger={['click']}
+                  placement="bottomRight"
                 >
-                  Người dùng
-                </Button>
+                  <Badge count={pendingCertCount} offset={[-4, 4]} style={{ backgroundColor: '#fa8c16' }}>
+                    <Button
+                      size="small"
+                      icon={<CrownOutlined />}
+                      style={{ background: '#d32f2f', color: '#fff', border: '1px solid #ef5350', fontWeight: 'bold' }}
+                    >
+                      Quản trị ▾
+                    </Button>
+                  </Badge>
+                </Dropdown>
               )}
-              {isAdmin() && (
-                <Button
-                  type="default"
-                  icon={<AppstoreOutlined />}
-                  onClick={() => setAdminCategoriesModalOpen(true)}
-                  style={{ background: 'rgba(255,255,255,0.2)', color: '#fff', border: '1px solid rgba(255,255,255,0.4)', fontWeight: 'bold' }}
-                >
-                  Danh mục
-                </Button>
-              )}
+
               <Button
+                size="small"
                 type="primary"
                 icon={<PlusCircleOutlined />}
                 onClick={() => setCreateProductOpen(true)}
                 style={{ background: '#2e7d32', borderColor: '#4caf50', fontWeight: 'bold' }}
               >
-                Đăng sản phẩm
+                Đăng SP
               </Button>
             </Space>
           )}
@@ -436,7 +453,7 @@ function App() {
             <Space size="middle">
               <CheckCircleOutlined style={{ color: '#52c41a', fontSize: 20 }} />
               <div>
-                <Text strong style={{ color: '#274916' }}>Trạng thái hệ thống (Tuần 3 — E-Commerce & Giỏ hàng):</Text>
+                <Text strong style={{ color: '#274916' }}>Trạng thái hệ thống OCOP Việt Nam:</Text>
                 <div style={{ fontSize: 13, color: '#389e0d' }}>
                   {healthLoading ? <Spin size="small" /> :
                     healthStatus?.status === 'UP' ? (

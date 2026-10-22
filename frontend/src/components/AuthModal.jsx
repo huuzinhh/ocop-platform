@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import {
-  Modal, Tabs, Form, Input, Button, Select, Alert, Typography, Space, Tag
+  Modal, Tabs, Form, Input, Button, Select, Alert, Typography, Space
 } from 'antd';
 import {
   UserOutlined, LockOutlined, MailOutlined, PhoneOutlined,
@@ -81,14 +81,6 @@ const AuthModal = ({ open, onClose }) => {
         rules={[{ required: true, message: 'Nhập mật khẩu' }]}>
         <Input.Password prefix={<LockOutlined />} placeholder="Mật khẩu" />
       </Form.Item>
-
-      <div style={{ marginBottom: 12, padding: '8px 12px', background: '#f6ffed',
-        borderRadius: 6, border: '1px dashed #b7eb8f', fontSize: 12 }}>
-        <Text type="secondary"><b>Tài khoản thử nghiệm:</b></Text>
-        <div><Tag color="red">Admin</Tag> admin / 123456</div>
-        <div><Tag color="blue">Nhà SX</Tag> producer_finho / 123456</div>
-        <div><Tag color="green">Khách hàng</Tag> customer_demo / 123456</div>
-      </div>
 
       <Form.Item>
         <Button type="primary" htmlType="submit" block loading={loading}
