@@ -45,7 +45,7 @@ public class OrderController {
         }
     }
 
-    @GetMapping
+    @GetMapping({"", "/my-orders"})
     @Operation(summary = "Lấy danh sách lịch sử đơn hàng của người dùng đang đăng nhập")
     public ResponseEntity<ApiResponse<List<OrderDto>>> getMyOrders(Authentication authentication) {
         if (authentication == null || !authentication.isAuthenticated()) {

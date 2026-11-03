@@ -30,6 +30,7 @@ import AdminCertificatesModal from './components/AdminCertificatesModal';
 import AdminUsersModal from './components/AdminUsersModal';
 import AdminCategoriesModal from './components/AdminCategoriesModal';
 import GisMap from './components/GisMap';
+import ChatBotWidget from './components/ChatBotWidget';
 import adminApi from './api/adminApi';
 
 const { Header, Content, Footer } = Layout;
@@ -173,6 +174,19 @@ function App() {
       return;
     }
     await addToCart(item.id, 1);
+  };
+
+  // Mở modal xem chi tiết sản phẩm theo ID (dùng cho Chatbot AI & các liên kết)
+  const handleOpenProductDetailById = async (productId) => {
+    try {
+      const res = await ocopApi.getProductById(productId);
+      if (res && res.data) {
+        setSelectedProduct(res.data);
+        setDetailModalVisible(true);
+      }
+    } catch (err) {
+      message.error('Không tìm thấy thông tin chi tiết sản phẩm');
+    }
   };
 
   // Menu dropdown khi đã đăng nhập
@@ -889,7 +903,7 @@ function App() {
           )}
           <div style={{ fontSize: 13, color: '#555' }}>
             <div><b>Cơ sở sản xuất:</b> {selectedProduct.producer?.name}</div>
-            <div><b>Địa chỉ:</b> {selectedProduct.producer?.location?.address}, {selectedProduct.producer?.location?.province}</div>
+            <div><b>Địa chỉ:</b> {selectedProduct.producer?.location?.addressDetail || selectedProduct.producer?.location?.address}, {selectedProduct.producer?.location?.province}</div>
             <div><b>Tồn kho khả dụng:</b> {selectedProduct.stockQuantity} {selectedProduct.unit}</div>
           </div>
         </Modal>
@@ -944,6 +958,9 @@ function App() {
         onClose={() => setAdminCategoriesModalOpen(false)}
         onCategoryChange={() => loadProducts(selectedStar, searchQuery)}
       />
+
+      {/* TRỢ LÝ AI CHATBOT OCOP */}
+      <ChatBotWidget onViewProduct={handleOpenProductDetailById} />
     </Layout>
   );
 }

@@ -1,6 +1,7 @@
 package com.ocop.controller;
 
 import com.ocop.common.ApiResponse;
+import com.ocop.dto.product.AiProductDto;
 import com.ocop.dto.product.CreateProductRequest;
 import com.ocop.entity.Category;
 import com.ocop.entity.Product;
@@ -49,6 +50,74 @@ public class ProductController {
         return productService.getProductById(id)
                 .map(p -> ResponseEntity.ok(ApiResponse.ok(p)))
                 .orElse(ResponseEntity.status(404).body(ApiResponse.error("Không tìm thấy sản phẩm")));
+    }
+
+    @GetMapping("/products/ai-search")
+    @Operation(summary = "Endpoint rút gọn dành riêng cho AI Agent / n8n tra cứu thông tin sản phẩm và câu chuyện OCOP")
+    public ApiResponse<List<AiProductDto>> searchForAi(
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String starRating) {
+
+        // Tự động làm sạch tham số search (phòng trường hợp n8n gửi thừa dấu =)
+        String cleanSearch = search;
+        if (cleanSearch != null) {
+            cleanSearch = cleanSearch.trim();
+            if (cleanSearch.startsWith("=")) {
+                cleanSearch = cleanSearch.substring(1).trim();
+            }
+        }
+
+        // Tự động làm sạch và ép kiểu starRating (ví dụ: "=5", "5 sao", "= 5" -> 5)
+        Short parsedStar = null;
+        if (starRating != null && !starRating.trim().isEmpty()) {
+            String digitsOnly = starRating.replaceAll("[^0-9]", "");
+            if (!digitsOnly.isEmpty()) {
+                try {
+                    parsedStar = Short.parseShort(digitsOnly);
+                } catch (NumberFormatException ignored) {
+                }
+            }
+        }
+
+        // Tự động bóc tách số sao nếu người dùng truyền gộp trong tham số search (ví dụ: search="5 sao", "4 sao")
+        if (parsedStar == null && cleanSearch != null) {
+            String lower = cleanSearch.toLowerCase().trim();
+            if (lower.matches("^[1-5](\\s*sao)?$") || lower.matches("^(sao\\s*)?[1-5]$") || lower.contains("5 sao") || lower.contains("4 sao") || lower.contains("3 sao")) {
+                String digitsOnly = lower.replaceAll("[^0-9]", "");
+                if (!digitsOnly.isEmpty()) {
+                    try {
+                        parsedStar = Short.parseShort(digitsOnly);
+                    } catch (NumberFormatException ignored) {
+                    }
+                }
+            }
+        }
+
+        List<Product> list;
+        if (parsedStar != null) {
+            list = productService.getProductsByStar(parsedStar);
+        } else if (cleanSearch != null && !cleanSearch.isEmpty()) {
+            list = productService.search(cleanSearch);
+        } else {
+            list = productService.getAllProducts();
+        }
+
+        // Giới hạn tối đa 6 sản phẩm tiêu biểu nhất để AI đọc cực nhanh và phản hồi tức thì
+        List<AiProductDto> dtoList = list.stream()
+                .limit(6)
+                .map(p -> new AiProductDto(
+                p.getId(),
+                p.getName(),
+                p.getPrice(),
+                p.getUnit(),
+                p.getOcopStarRating(),
+                p.getProducer() != null ? p.getProducer().getName() : "N/A",
+                (p.getProducer() != null && p.getProducer().getLocation() != null)
+                        ? p.getProducer().getLocation().getProvince() : "N/A",
+                p.getCulturalStory()
+        )).toList();
+
+        return ApiResponse.ok(dtoList, "Tra cứu dữ liệu sản phẩm cho AI thành công");
     }
 
 
