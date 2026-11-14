@@ -1,0 +1,8 @@
+{
+  "network": "hardhat_localhost",
+  "contractAddress": "0x5fbdb2315678afecb367f032d93f642f64180aa3",
+  "deployerAddress": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+  "blockNumber": "1",
+  "transactionHash": "0x032b74a8f9fdcf5fe70648862c7ecc23b26d302aa7073ebd5616645dbbbe2c1f",
+  "deployedAt": "2026-11-14T18:49:46.407Z"
+}

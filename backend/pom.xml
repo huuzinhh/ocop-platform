@@ -79,7 +79,14 @@
             <version>0.12.6</version>
             <scope>runtime</scope>
         </dependency>
-
+        
+        <!-- Web3j: Thư viện Java kết nối Ethereum Blockchain & Smart Contract -->
+        <dependency>
+            <groupId>org.web3j</groupId>
+            <artifactId>core</artifactId>
+            <version>4.10.3</version>
+        </dependency>
+        
         <!-- Test -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

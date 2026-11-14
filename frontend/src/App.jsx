@@ -1251,24 +1251,51 @@ function App() {
                 title={
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
                     <Space>
-                      <SafetyCertificateOutlined style={{ color: '#52c41a', fontSize: 22 }} />
+                      <SafetyCertificateOutlined style={{ color: traceResult.isIntegrityVerified ? '#52c41a' : '#f5222d', fontSize: 22 }} />
                       <span style={{ fontSize: 16 }}>Kết quả truy xuất: <b>{traceResult.productName}</b></span>
                       <Tag color="gold" style={{ fontWeight: 'bold' }}><StarFilled /> OCOP {traceResult.ocopStarRating}★</Tag>
                     </Space>
-                    <Tag color="green" icon={<CheckCircleOutlined />} style={{ fontSize: 12, padding: '4px 10px' }}>
-                      BẢO CHỨNG BLOCKCHAIN: {traceResult.blockchainStatus || 'COMMITTED'}
-                    </Tag>
+                    {traceResult.isIntegrityVerified ? (
+                      <Tag color="green" icon={<CheckCircleOutlined />} style={{ fontSize: 12, padding: '4px 10px', fontWeight: 'bold' }}>
+                        BẢO CHỨNG BLOCKCHAIN: HỢP LỆ ✓
+                      </Tag>
+                    ) : (
+                      <Tag color="error" style={{ fontSize: 12, padding: '4px 10px', fontWeight: 'bold' }}>
+                        🚨 CẢNH BÁO: DỮ LIỆU BỊ SỬA ĐỔI TRÁI PHÉP
+                      </Tag>
+                    )}
                   </div>
                 }
-                style={{ borderRadius: 10, borderColor: '#b7eb8f', boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}
+                style={{ 
+                  borderRadius: 10, 
+                  borderColor: traceResult.isIntegrityVerified ? '#b7eb8f' : '#ff4d4f', 
+                  boxShadow: traceResult.isIntegrityVerified ? '0 4px 12px rgba(0,0,0,0.08)' : '0 4px 16px rgba(255, 77, 79, 0.25)' 
+                }}
               >
-                <Alert
-                  type="success"
-                  showIcon
-                  message="Dữ liệu chuỗi cung ứng toàn vẹn & minh bạch"
-                  description="Mọi hoạt động thu hái, chế biến, kiểm định và đóng gói của lô hàng này đã được băm SHA-256 và ký số trên Sổ cái Blockchain. Không thể làm giả hoặc chỉnh sửa thời gian hồi tố."
-                  style={{ marginBottom: 20 }}
-                />
+                {traceResult.isIntegrityVerified ? (
+                  <Alert
+                    type="success"
+                    showIcon
+                    message="Dữ liệu chuỗi cung ứng toàn vẹn & minh bạch"
+                    description="Mọi hoạt động thu hái, chế biến, kiểm định và đóng gói của lô hàng này đã được băm SHA-256 và ký số trên Sổ cái Blockchain. Không thể làm giả hoặc chỉnh sửa thời gian hồi tố."
+                    style={{ marginBottom: 20 }}
+                  />
+                ) : (
+                  <Alert
+                    type="error"
+                    showIcon
+                    message="🚨 CẢNH BÁO BẢO MẬT: PHÁT HIỆN DỮ LIỆU ĐÃ BỊ THAY ĐỔI TRÁI PHÉP!"
+                    description={
+                      <div>
+                        <div><b>Hệ thống phát hiện sai lệch dữ liệu:</b> Thông tin số lượng, ngày sản xuất hoặc hạn dùng trong cơ sở dữ liệu hiện tại không trùng khớp với mã băm SHA-256 đã lưu trữ vĩnh viễn trên Smart Contract.</div>
+                        <div style={{ marginTop: 6, fontSize: 12, color: '#cf1322', fontWeight: 'bold' }}>
+                          ⚠️ Lô hàng này có dấu hiệu bị can thiệp gian lận hoặc sửa đổi số liệu ngoài sổ cái Blockchain!
+                        </div>
+                      </div>
+                    }
+                    style={{ marginBottom: 20, border: '1px solid #ff4d4f' }}
+                  />
+                )}
 
                 <Row gutter={[24, 24]}>
                   {/* CỘT TRÁI: THÔNG TIN LÔ HÀNG, CƠ SỞ & CHỨNG NHẬN */}
