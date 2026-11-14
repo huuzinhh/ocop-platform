@@ -1,8 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import dayjs from 'dayjs';
 import {
   Layout, Menu, Card, Row, Col, Tag, Typography, Rate, Button,
   Input, Select, Space, Spin, Alert, message, Avatar, Dropdown, Badge,
-  Modal, Divider, Popconfirm, Empty, List, Timeline
+  Modal, Divider, Popconfirm, Empty, List, Timeline, QRCode,
+  Pagination, InputNumber, Tooltip
 } from 'antd';
 import {
   ShopOutlined, EnvironmentOutlined, QrcodeOutlined,
@@ -11,7 +13,8 @@ import {
   LogoutOutlined, CrownOutlined, StarFilled, ShoppingCartOutlined,
   PlusCircleOutlined, HistoryOutlined, DeleteOutlined,
   OrderedListOutlined, CompassOutlined, AuditOutlined, RiseOutlined,
-  AppstoreOutlined, TeamOutlined
+  AppstoreOutlined, TeamOutlined, FilterOutlined, ClearOutlined,
+  DollarOutlined, SortAscendingOutlined, ThunderboltOutlined, FireOutlined
 } from '@ant-design/icons';
 import { ocopApi } from './api/ocopApi';
 import { traceApi } from './api/traceApi';
@@ -22,6 +25,8 @@ import CartDrawer from './components/CartDrawer';
 import CheckoutModal from './components/CheckoutModal';
 import OrdersModal from './components/OrdersModal';
 import AdminOrdersModal from './components/AdminOrdersModal';
+import AdminDashboardModal from './components/AdminDashboardModal';
+import AdminDashboardView from './components/AdminDashboardView';
 import CreateProductModal from './components/CreateProductModal';
 import ProducerProductsModal from './components/ProducerProductsModal';
 import ProducerBatchesModal from './components/ProducerBatchesModal';
@@ -65,6 +70,8 @@ function App() {
   const [adminCertificatesModalOpen, setAdminCertificatesModalOpen] = useState(false);
   const [adminUsersModalOpen, setAdminUsersModalOpen] = useState(false);
   const [adminCategoriesModalOpen, setAdminCategoriesModalOpen] = useState(false);
+  const [adminDashboardOpen, setAdminDashboardOpen] = useState(false);
+  const [adminViewMode, setAdminViewMode] = useState('dashboard'); // 'dashboard' | 'storefront'
   const [pendingCertCount, setPendingCertCount] = useState(0);
 
   // Data States
@@ -72,13 +79,23 @@ function App() {
   const [healthLoading, setHealthLoading] = useState(true);
   const [products, setProducts] = useState([]);
   const [productsLoading, setProductsLoading] = useState(true);
-  const [selectedStar, setSelectedStar] = useState(null);
-  const [searchQuery, setSearchQuery] = useState('');
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [detailModalVisible, setDetailModalVisible] = useState(false);
 
+  // Filter & Pagination States
+  const [selectedStar, setSelectedStar] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedProvince, setSelectedProvince] = useState(null);
+  const [selectedCategory, setSelectedCategory] = useState(null);
+  const [priceRangePreset, setPriceRangePreset] = useState('ALL');
+  const [customMinPrice, setCustomMinPrice] = useState(null);
+  const [customMaxPrice, setCustomMaxPrice] = useState(null);
+  const [sortBy, setSortBy] = useState('DEFAULT');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(12);
+
   // QR / Trace state
-  const [traceBatchCode, setTraceBatchCode] = useState('BATCH-KD-202601');
+  const [traceBatchCode, setTraceBatchCode] = useState('BATCH-P001-20260408');
   const [traceResult, setTraceResult] = useState(null);
   const [traceLoading, setTraceLoading] = useState(false);
 
@@ -94,19 +111,150 @@ function App() {
     }
   };
 
-  const loadProducts = async (star, query) => {
+  const loadProducts = async () => {
     setProductsLoading(true);
     try {
-      const params = {};
-      if (star) params.starRating = star;
-      if (query && query.trim()) params.search = query.trim();
-      const res = await ocopApi.getProducts(params);
+      const res = await ocopApi.getProducts({});
       if (res && res.success) setProducts(res.data || []);
     } catch {
       message.error('Không thể tải danh sách sản phẩm');
     } finally {
       setProductsLoading(false);
     }
+  };
+
+  // Trích xuất danh sách các tỉnh thành độc nhất từ dữ liệu sản phẩm
+  const availableProvinces = useMemo(() => {
+    const set = new Set();
+    products.forEach((p) => {
+      const prov = p.producer?.location?.province;
+      if (prov && prov.trim()) set.add(prov.trim());
+    });
+    return Array.from(set).sort((a, b) => a.localeCompare(b, 'vi'));
+  }, [products]);
+
+  // Trích xuất danh sách ngành hàng từ dữ liệu sản phẩm
+  const availableCategories = useMemo(() => {
+    const map = new Map();
+    products.forEach((p) => {
+      if (p.category && p.category.id) {
+        map.set(p.category.id, p.category.name);
+      }
+    });
+    return Array.from(map.entries()).map(([id, name]) => ({ id, name }));
+  }, [products]);
+
+  // Reset trang về 1 khi bất kỳ điều kiện lọc nào thay đổi
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, selectedStar, selectedProvince, selectedCategory, priceRangePreset, customMinPrice, customMaxPrice, sortBy]);
+
+  // Bộ lọc đa tiêu chí (Đặc sản OCOP, Địa điểm, Khoảng giá, Hạng sao, Danh mục, Sắp xếp)
+  const filteredProducts = useMemo(() => {
+    let result = [...products];
+
+    // 1. Tìm kiếm từ khóa (Tên sản phẩm, mô tả, tên HTX, tỉnh thành, ngành hàng)
+    if (searchQuery && searchQuery.trim()) {
+      const q = searchQuery.trim().toLowerCase();
+      result = result.filter((p) =>
+        p.name?.toLowerCase().includes(q) ||
+        p.description?.toLowerCase().includes(q) ||
+        p.producer?.name?.toLowerCase().includes(q) ||
+        p.producer?.location?.province?.toLowerCase().includes(q) ||
+        p.category?.name?.toLowerCase().includes(q)
+      );
+    }
+
+    // 2. Hạng sao OCOP (3★, 4★, 5★)
+    if (selectedStar) {
+      result = result.filter((p) => Number(p.ocopStarRating) === Number(selectedStar));
+    }
+
+    // 3. Địa điểm / Tỉnh thành
+    if (selectedProvince) {
+      result = result.filter((p) => p.producer?.location?.province === selectedProvince);
+    }
+
+    // 4. Danh mục ngành hàng
+    if (selectedCategory) {
+      result = result.filter((p) => p.category?.id === selectedCategory);
+    }
+
+    // 5. Khoảng giá
+    if (priceRangePreset === 'UNDER_100K') {
+      result = result.filter((p) => Number(p.price) < 100000);
+    } else if (priceRangePreset === '100K_300K') {
+      result = result.filter((p) => Number(p.price) >= 100000 && Number(p.price) <= 300000);
+    } else if (priceRangePreset === '300K_500K') {
+      result = result.filter((p) => Number(p.price) >= 300000 && Number(p.price) <= 500000);
+    } else if (priceRangePreset === '500K_1M') {
+      result = result.filter((p) => Number(p.price) >= 500000 && Number(p.price) <= 1000000);
+    } else if (priceRangePreset === 'OVER_1M') {
+      result = result.filter((p) => Number(p.price) > 1000000);
+    } else if (priceRangePreset === 'CUSTOM') {
+      if (customMinPrice !== null && customMinPrice !== undefined && customMinPrice !== '') {
+        result = result.filter((p) => Number(p.price) >= Number(customMinPrice));
+      }
+      if (customMaxPrice !== null && customMaxPrice !== undefined && customMaxPrice !== '') {
+        result = result.filter((p) => Number(p.price) <= Number(customMaxPrice));
+      }
+    }
+
+    // 6. Sắp xếp
+    if (sortBy === 'PRICE_ASC') {
+      result.sort((a, b) => Number(a.price) - Number(b.price));
+    } else if (sortBy === 'PRICE_DESC') {
+      result.sort((a, b) => Number(b.price) - Number(a.price));
+    } else if (sortBy === 'STAR_DESC') {
+      result.sort((a, b) => (Number(b.ocopStarRating) || 0) - (Number(a.ocopStarRating) || 0));
+    } else if (sortBy === 'NEWEST') {
+      result.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+    }
+
+    return result;
+  }, [products, searchQuery, selectedStar, selectedProvince, selectedCategory, priceRangePreset, customMinPrice, customMaxPrice, sortBy]);
+
+  // Cắt trang sản phẩm
+  const paginatedProducts = useMemo(() => {
+    const startIndex = (currentPage - 1) * pageSize;
+    return filteredProducts.slice(startIndex, startIndex + pageSize);
+  }, [filteredProducts, currentPage, pageSize]);
+
+  // Số lượng điều kiện lọc đang bật
+  const activeFilterCount = useMemo(() => {
+    let count = 0;
+    if (searchQuery && searchQuery.trim()) count++;
+    if (selectedStar) count++;
+    if (selectedProvince) count++;
+    if (selectedCategory) count++;
+    if (priceRangePreset !== 'ALL') count++;
+    if (sortBy !== 'DEFAULT') count++;
+    return count;
+  }, [searchQuery, selectedStar, selectedProvince, selectedCategory, priceRangePreset, sortBy]);
+
+  const isFilterActive = activeFilterCount > 0;
+
+  // Dữ liệu sản phẩm gợi ý cá nhân hóa (Personalized Recommendations Slot)
+  // Logic: Tuyển chọn các đặc sản OCOP 5 sao quốc gia và 4 sao tiêu biểu,
+  // Slot này được cấu trúc riêng biệt sẵn sàng tích hợp AI recommendation engine / n8n workflow.
+  const recommendedProducts = useMemo(() => {
+    if (!products || products.length === 0) return [];
+    const fiveStars = products.filter((p) => Number(p.ocopStarRating) === 5);
+    if (fiveStars.length >= 4) return fiveStars.slice(0, 4);
+    const fourStars = products.filter((p) => Number(p.ocopStarRating) === 4);
+    return [...fiveStars, ...fourStars].slice(0, 4);
+  }, [products]);
+
+  const handleResetFilters = () => {
+    setSearchQuery('');
+    setSelectedStar(null);
+    setSelectedProvince(null);
+    setSelectedCategory(null);
+    setPriceRangePreset('ALL');
+    setCustomMinPrice(null);
+    setCustomMaxPrice(null);
+    setSortBy('DEFAULT');
+    setCurrentPage(1);
   };
 
   const handleTraceLookup = async (overrideCode) => {
@@ -179,12 +327,21 @@ function App() {
   // Mở modal xem chi tiết sản phẩm theo ID (dùng cho Chatbot AI & các liên kết)
   const handleOpenProductDetailById = async (productId) => {
     try {
-      const res = await ocopApi.getProductById(productId);
-      if (res && res.data) {
-        setSelectedProduct(res.data);
+      const idNum = Number(productId);
+      if (!idNum || isNaN(idNum)) {
+        message.warning('Mã sản phẩm không hợp lệ');
+        return;
+      }
+      const res = await ocopApi.getProductById(idNum);
+      const product = res?.data || res;
+      if (product && product.id) {
+        setSelectedProduct(product);
         setDetailModalVisible(true);
+      } else {
+        message.warning('Không tìm thấy thông tin sản phẩm');
       }
     } catch (err) {
+      console.error('Lỗi khi mở chi tiết sản phẩm:', err);
       message.error('Không tìm thấy thông tin chi tiết sản phẩm');
     }
   };
@@ -202,18 +359,27 @@ function App() {
       disabled: true,
     },
     { type: 'divider' },
-    {
-      key: 'orders',
-      label: 'Đơn hàng của tôi',
-      icon: <HistoryOutlined />,
-      onClick: () => setOrdersModalOpen(true),
-    },
+    ...(isAdmin() ? [
+      {
+        key: 'admin-dashboard-center',
+        label: <b style={{ color: '#d32f2f' }}>Trang Chủ Quản Trị Hệ Thống (Dashboard) 👑</b>,
+        icon: <CrownOutlined style={{ color: '#d32f2f' }} />,
+        onClick: () => setAdminViewMode('dashboard'),
+      },
+    ] : [
+      {
+        key: 'orders',
+        label: 'Đơn hàng của tôi',
+        icon: <HistoryOutlined />,
+        onClick: () => setOrdersModalOpen(true),
+      },
+    ]),
     ...(isProducer() || isAdmin() ? [
       {
         key: 'producer-dashboard',
         label: isAdmin() ? 'Dashboard Thống kê toàn sàn (Admin)' : 'Thống kê & Hiệu quả bán hàng cơ sở',
         icon: <RiseOutlined />,
-        onClick: () => setProducerDashboardModalOpen(true),
+        onClick: () => (isAdmin() ? setAdminViewMode('dashboard') : setProducerDashboardModalOpen(true)),
       },
       {
         key: 'producer-products',
@@ -285,6 +451,17 @@ function App() {
 
   const roleBadge = currentUser ? getRoleBadge(currentUser.roles) : null;
 
+  // NẾU LÀ ADMIN VÀ ĐANG Ở CHẾ ĐỘ DASHBOARD: DASHBOARD LÀ TRANG CHỦ MẶC ĐỊNH CỦA ADMIN
+  if (isLoggedIn && isAdmin() && adminViewMode === 'dashboard') {
+    return (
+      <>
+        <AdminDashboardView
+          onSwitchToStorefront={() => setAdminViewMode('storefront')}
+        />
+      </>
+    );
+  }
+
   return (
     <Layout style={{ minHeight: '100vh', background: '#f5f7fa' }}>
       {/* HEADER */}
@@ -322,13 +499,29 @@ function App() {
           {/* Nút Quản lý & Đăng sản phẩm cho Producer / Admin */}
           {isLoggedIn && (isProducer() || isAdmin()) && (
             <Space size={6}>
+              {isAdmin() && (
+                <Button
+                  size="small"
+                  type="primary"
+                  icon={<CrownOutlined />}
+                  onClick={() => setAdminViewMode('dashboard')}
+                  style={{
+                    background: '#d32f2f',
+                    borderColor: '#b71c1c',
+                    fontWeight: 'bold',
+                    boxShadow: '0 2px 6px rgba(211,47,47,0.4)',
+                  }}
+                >
+                  Về Trang Chủ Admin 👑
+                </Button>
+              )}
               <Button
                 size="small"
                 icon={<RiseOutlined />}
-                onClick={() => setProducerDashboardModalOpen(true)}
+                onClick={() => (isAdmin() ? setAdminViewMode('dashboard') : setProducerDashboardModalOpen(true))}
                 style={{ background: 'rgba(255,255,255,0.2)', color: '#fff', border: '1px solid rgba(255,255,255,0.4)', fontWeight: 'bold' }}
               >
-                Thống kê
+                {isAdmin() ? 'KPI Toàn Sàn' : 'Thống kê'}
               </Button>
               <Button
                 size="small"
@@ -360,6 +553,13 @@ function App() {
                 <Dropdown
                   menu={{
                     items: [
+                      {
+                        key: 'dashboard',
+                        icon: <CrownOutlined style={{ color: '#d32f2f' }} />,
+                        label: <b>Trang Chủ Điều Hành (Dashboard)</b>,
+                        onClick: () => setAdminViewMode('dashboard'),
+                      },
+                      { type: 'divider' },
                       {
                         key: 'certs',
                         icon: <SafetyCertificateOutlined />,
@@ -414,16 +614,18 @@ function App() {
             </Space>
           )}
 
-          {/* Icon Giỏ hàng kèm Badge số lượng */}
-          <Badge count={cartCount} showZero={false} offset={[-2, 2]}>
-            <Button
-              shape="circle"
-              icon={<ShoppingCartOutlined style={{ fontSize: 20, color: '#1b5e20' }} />}
-              onClick={() => setCartDrawerOpen(true)}
-              style={{ background: '#ffd54f', border: 'none' }}
-              title="Xem giỏ hàng OCOP"
-            />
-          </Badge>
+          {/* Icon Giỏ hàng kèm Badge số lượng (Chỉ dành cho Khách hàng / Người mua sắm) */}
+          {!isAdmin() && (
+            <Badge count={cartCount} showZero={false} offset={[-2, 2]}>
+              <Button
+                shape="circle"
+                icon={<ShoppingCartOutlined style={{ fontSize: 20, color: '#1b5e20' }} />}
+                onClick={() => setCartDrawerOpen(true)}
+                style={{ background: '#ffd54f', border: 'none' }}
+                title="Xem giỏ hàng OCOP"
+              />
+            </Badge>
+          )}
 
           {/* Khu vực Người dùng */}
           {isLoggedIn ? (
@@ -458,7 +660,7 @@ function App() {
       </Header>
 
       {/* CONTENT */}
-      <Content style={{ padding: '30px 40px', maxWidth: 1280, margin: '0 auto', width: '100%' }}>
+      <Content style={{ padding: '24px 32px', maxWidth: 1400, margin: '0 auto', width: '100%' }}>
         {/* BANNER TRẠNG THÁI HỆ THỐNG */}
         <Card size="small" style={{ marginBottom: 24, borderRadius: 8,
           border: '1px solid #b7eb8f', background: '#f6ffed' }}>
@@ -491,140 +693,495 @@ function App() {
         {/* TAB 1: SẢN PHẨM OCOP (E-COMMERCE) */}
         {activeNav === 'home' && (
           <div>
-            {/* TIÊU ĐỀ & BỘ LỌC */}
-            <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'space-between',
-              alignItems: 'flex-end', flexWrap: 'wrap', gap: 16 }}>
-              <div>
-                <Title level={2} style={{ margin: 0, color: '#1b5e20' }}>
-                  Đặc Sản OCOP Vùng Miền
-                </Title>
-                <Text type="secondary">
-                  Sản phẩm đạt chứng nhận OCOP 3★ – 5★ từ các Hợp tác xã toàn quốc ({products.length} sản phẩm)
-                </Text>
-              </div>
-              <Space wrap size="middle">
-                <Search
-                  placeholder="Tìm kiếm đặc sản OCOP..."
-                  allowClear
-                  value={searchQuery}
-                  onChange={(e) => {
-                    setSearchQuery(e.target.value);
-                    if (!e.target.value) loadProducts(selectedStar, '');
-                  }}
-                  onSearch={(v) => loadProducts(selectedStar, v)}
-                  style={{ width: 260 }}
-                  prefix={<SearchOutlined />}
-                />
-                <Select
-                  placeholder="Lọc theo sao OCOP"
-                  style={{ width: 170 }}
-                  allowClear
-                  value={selectedStar}
-                  onChange={(v) => { setSelectedStar(v); loadProducts(v, searchQuery); }}
-                >
-                  <Option value={5}><StarFilled style={{ color: '#faad14' }} /> 5 Sao Quốc gia</Option>
-                  <Option value={4}><StarFilled style={{ color: '#faad14' }} /> 4 Sao Tỉnh</Option>
-                  <Option value={3}><StarFilled style={{ color: '#faad14' }} /> 3 Sao Tỉnh</Option>
-                </Select>
-              </Space>
+            {/* TIÊU ĐỀ & MÔ TẢ TRANG CHỦ */}
+            <div style={{ marginBottom: 20 }}>
+              <Title level={2} style={{ margin: 0, color: '#1b5e20', fontWeight: 800 }}>
+                Đặc Sản OCOP Vùng Miền Việt Nam
+              </Title>
+              <Text type="secondary" style={{ fontSize: 13 }}>
+                Khám phá và kết nối trực tiếp với các Hợp tác xã, nông sản và làng nghề truyền thống đạt chuẩn 3★ – 5★
+              </Text>
             </div>
 
-            {/* DANH SÁCH SẢN PHẨM */}
-            {productsLoading ? (
-              <div style={{ textAlign: 'center', padding: '80px 0' }}>
-                <Spin size="large" description="Đang tải sản phẩm từ cơ sở dữ liệu..." />
-              </div>
-            ) : products.length === 0 ? (
-              <Alert message="Không tìm thấy sản phẩm OCOP phù hợp." type="info" showIcon />
-            ) : (
-              <Row gutter={[20, 20]}>
-                {products.map((item) => (
-                  <Col xs={24} sm={12} md={8} lg={6} key={item.id}>
-                    <Card
-                      hoverable
-                      style={{ height: '100%', display: 'flex', flexDirection: 'column',
-                        borderRadius: 10, overflow: 'hidden' }}
-                      cover={
-                        <div style={{ height: 200, overflow: 'hidden', position: 'relative', background: '#e8f5e9' }}>
-                          <img
-                            alt={item.name}
-                            src={item.thumbnail}
-                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                            onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1544787219-7f47ccb76574?w=400'; }}
-                          />
-                          <Tag
-                            color={item.ocopStarRating === 5 ? 'gold' : 'blue'}
-                            icon={<StarFilled />}
-                            style={{ position: 'absolute', top: 10, right: 10, fontWeight: 'bold' }}
+            {/* BỐ CỤC 2 CỘT: THANH LỌC BÊN TRÁI & KHU VỰC SẢN PHẨM BÊN PHẢI */}
+            <Row gutter={[24, 24]}>
+              {/* CỘT TRÁI: THANH BỘ LỌC (SIDEBAR FILTER) */}
+              <Col xs={24} lg={6}>
+                <div style={{ position: 'sticky', top: 80 }}>
+                  <Card
+                    style={{
+                      borderRadius: 14,
+                      border: '1px solid #e2e8f0',
+                      boxShadow: '0 2px 10px rgba(0,0,0,0.03)',
+                      background: '#ffffff',
+                    }}
+                    styles={{ body: { padding: '20px 18px' } }}
+                  >
+                    {/* Header Bộ lọc */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, paddingBottom: 12, borderBottom: '1px solid #f1f5f9' }}>
+                      <Space size={8}>
+                        <FilterOutlined style={{ color: '#166534', fontSize: 18 }} />
+                        <span style={{ fontWeight: 800, fontSize: 16, color: '#0f172a' }}>
+                          Bộ Lọc Tìm Kiếm
+                        </span>
+                      </Space>
+                      {isFilterActive && (
+                        <Button
+                          type="link"
+                          size="small"
+                          danger
+                          icon={<ClearOutlined />}
+                          onClick={handleResetFilters}
+                          style={{ padding: 0, fontSize: 12, fontWeight: 600 }}
+                        >
+                          Đặt lại ({activeFilterCount})
+                        </Button>
+                      )}
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+                      {/* 1. Tìm kiếm từ khóa */}
+                      <div>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: '#334155', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.3px' }}>
+                          🔍 Từ khóa tìm kiếm
+                        </div>
+                        <Search
+                          placeholder="Tên đặc sản, HTX..."
+                          allowClear
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          style={{ width: '100%' }}
+                        />
+                      </div>
+
+                      {/* 2. Địa điểm / Tỉnh thành */}
+                      <div>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: '#334155', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.3px' }}>
+                          📍 Địa phương / Tỉnh thành
+                        </div>
+                        <Select
+                          placeholder="Tất cả tỉnh thành"
+                          allowClear
+                          showSearch
+                          optionFilterProp="children"
+                          value={selectedProvince}
+                          onChange={(v) => setSelectedProvince(v || null)}
+                          style={{ width: '100%' }}
+                          suffixIcon={<EnvironmentOutlined style={{ color: '#166534' }} />}
+                        >
+                          {availableProvinces.map((prov) => (
+                            <Option key={prov} value={prov}>
+                              {prov}
+                            </Option>
+                          ))}
+                        </Select>
+                      </div>
+
+                      {/* 3. Khoảng giá */}
+                      <div>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: '#334155', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.3px' }}>
+                          💰 Khoảng giá sản phẩm
+                        </div>
+                        <Select
+                          value={priceRangePreset}
+                          onChange={(v) => setPriceRangePreset(v)}
+                          style={{ width: '100%' }}
+                          suffixIcon={<DollarOutlined style={{ color: '#b45309' }} />}
+                        >
+                          <Option value="ALL">Tất cả mức giá</Option>
+                          <Option value="UNDER_100K">Dưới 100.000 đ</Option>
+                          <Option value="100K_300K">100.000 đ - 300.000 đ</Option>
+                          <Option value="300K_500K">300.000 đ - 500.000 đ</Option>
+                          <Option value="500K_1M">500.000 đ - 1.000.000 đ</Option>
+                          <Option value="OVER_1M">Trên 1.000.000 đ</Option>
+                          <Option value="CUSTOM">Tùy chỉnh khoảng giá...</Option>
+                        </Select>
+
+                        {/* Ô nhập giá Min-Max tùy chỉnh */}
+                        {priceRangePreset === 'CUSTOM' && (
+                          <div style={{ marginTop: 8, display: 'flex', gap: 6, alignItems: 'center' }}>
+                            <InputNumber
+                              placeholder="Từ (đ)"
+                              value={customMinPrice}
+                              onChange={setCustomMinPrice}
+                              formatter={(val) => `${val}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                              parser={(val) => val ? val.replace(/\$\s?|(,*)/g, '') : ''}
+                              style={{ width: '50%' }}
+                              min={0}
+                            />
+                            <span style={{ color: '#94a3b8' }}>-</span>
+                            <InputNumber
+                              placeholder="Đến (đ)"
+                              value={customMaxPrice}
+                              onChange={setCustomMaxPrice}
+                              formatter={(val) => `${val}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                              parser={(val) => val ? val.replace(/\$\s?|(,*)/g, '') : ''}
+                              style={{ width: '50%' }}
+                              min={0}
+                            />
+                          </div>
+                        )}
+                      </div>
+
+                      {/* 4. Hạng sao OCOP */}
+                      <div>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: '#334155', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.3px' }}>
+                          ⭐ Hạng sao OCOP
+                        </div>
+                        <Select
+                          placeholder="Tất cả hạng sao"
+                          allowClear
+                          value={selectedStar}
+                          onChange={(v) => setSelectedStar(v || null)}
+                          style={{ width: '100%' }}
+                        >
+                          <Option value={5}>⭐⭐⭐⭐⭐ 5 Sao Quốc gia</Option>
+                          <Option value={4}>⭐⭐⭐⭐ 4 Sao Tỉnh</Option>
+                          <Option value={3}>⭐⭐⭐ 3 Sao Tỉnh</Option>
+                        </Select>
+                      </div>
+
+                      {/* 5. Ngành hàng OCOP */}
+                      <div>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: '#334155', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.3px' }}>
+                          🏷️ Ngành hàng OCOP
+                        </div>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                          <Tag.CheckableTag
+                            checked={selectedCategory === null}
+                            onChange={() => setSelectedCategory(null)}
+                            style={{ borderRadius: 12, padding: '3px 10px', fontSize: 12, margin: 0 }}
                           >
-                            OCOP {item.ocopStarRating}★
-                          </Tag>
-                          {item.ocopCertificate?.status === 'APPROVED' && (
-                            <Tag
-                              color="success"
-                              icon={<SafetyCertificateOutlined />}
-                              style={{
-                                position: 'absolute',
-                                top: 10,
-                                left: 10,
-                                fontWeight: 'bold',
-                                background: 'rgba(255, 255, 255, 0.95)',
-                                color: '#237804',
-                                borderColor: '#b7eb8f',
-                                boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-                              }}
+                            Tất cả
+                          </Tag.CheckableTag>
+                          {availableCategories.map((c) => (
+                            <Tag.CheckableTag
+                              key={c.id}
+                              checked={selectedCategory === c.id}
+                              onChange={(checked) => setSelectedCategory(checked ? c.id : null)}
+                              style={{ borderRadius: 12, padding: '3px 10px', fontSize: 12, margin: 0 }}
                             >
-                              ✓ Đã Thẩm Định
-                            </Tag>
-                          )}
+                              {c.name}
+                            </Tag.CheckableTag>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* 6. Sắp xếp kết quả */}
+                      <div>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: '#334155', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.3px' }}>
+                          ↕️ Sắp xếp kết quả
+                        </div>
+                        <Select
+                          value={sortBy}
+                          onChange={(v) => setSortBy(v)}
+                          style={{ width: '100%' }}
+                        >
+                          <Option value="DEFAULT">Mặc định (Nổi bật)</Option>
+                          <Option value="PRICE_ASC">Giá: Thấp đến cao</Option>
+                          <Option value="PRICE_DESC">Giá: Cao đến thấp</Option>
+                          <Option value="STAR_DESC">Hạng sao cao nhất</Option>
+                          <Option value="NEWEST">Mới cập nhật</Option>
+                        </Select>
+                      </div>
+                    </div>
+                  </Card>
+                </div>
+              </Col>
+
+              {/* CỘT PHẢI: GỢI Ý CÁ NHÂN HÓA + DANH MỤC SẢN PHẨM PHÂN TRANG */}
+              <Col xs={24} lg={18}>
+                {/* ======================================================== */}
+                {/* PHẦN 1: KHU VỰC GỢI Ý CÁ NHÂN HÓA (RECOMMENDATION SLOT) */}
+                {/* ======================================================== */}
+                <Card
+                  style={{
+                    marginBottom: 24,
+                    borderRadius: 14,
+                    border: '1px solid #bbf7d0',
+                    background: 'linear-gradient(135deg, #f0fdf4 0%, #ffffff 50%, #fefce8 100%)',
+                    boxShadow: '0 2px 10px rgba(22, 101, 52, 0.05)',
+                    overflow: 'hidden',
+                  }}
+                  styles={{ body: { padding: '18px 20px' } }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, flexWrap: 'wrap', gap: 8 }}>
+                    <Space size={10}>
+                      <div
+                        style={{
+                          width: 32,
+                          height: 32,
+                          borderRadius: 8,
+                          background: 'linear-gradient(135deg, #16a34a, #15803d)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: '#ffd54f',
+                          fontSize: 16,
+                          boxShadow: '0 2px 6px rgba(22, 163, 74, 0.3)',
+                        }}
+                      >
+                        <ThunderboltOutlined />
+                      </div>
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <span style={{ fontWeight: 800, fontSize: 16, color: '#166534' }}>
+                            Gợi Ý Dành Riêng Cho Bạn
+                          </span>
+                          <Tag color="gold" style={{ borderRadius: 10, fontWeight: 700, padding: '0 8px', fontSize: 10 }}>
+                            AI Personalized
+                          </Tag>
+                        </div>
+                        <div style={{ fontSize: 12, color: '#64748b' }}>
+                          Tuyển chọn đặc sản OCOP tiêu biểu theo sở thích, lịch sử tương tác và thứ hạng chứng nhận
+                        </div>
+                      </div>
+                    </Space>
+                    <Tag color="success" icon={<CheckCircleOutlined />} style={{ borderRadius: 12, padding: '2px 10px', fontWeight: 600 }}>
+                      Bảo chứng OCOP 5★ & 4★
+                    </Tag>
+                  </div>
+
+                  {/* 4 Card Sản phẩm gợi ý */}
+                  <Row gutter={[14, 14]}>
+                    {recommendedProducts.map((recItem) => (
+                      <Col xs={24} sm={12} lg={6} key={`rec-${recItem.id}`}>
+                        <Card
+                          hoverable
+                          size="small"
+                          style={{
+                            height: '100%',
+                            borderRadius: 10,
+                            overflow: 'hidden',
+                            border: '1px solid #dcfce7',
+                            background: '#ffffff',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
+                          }}
+                          cover={
+                            <div style={{ height: 130, position: 'relative', overflow: 'hidden', background: '#f0fdf4' }}>
+                              <img
+                                alt={recItem.name}
+                                src={recItem.thumbnail}
+                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1544787219-7f47ccb76574?w=400'; }}
+                              />
+                              <Tag
+                                color={recItem.ocopStarRating === 5 ? 'gold' : 'blue'}
+                                icon={<StarFilled />}
+                                style={{ position: 'absolute', top: 6, right: 6, fontSize: 10, fontWeight: 700, margin: 0 }}
+                              >
+                                {recItem.ocopStarRating}★
+                              </Tag>
+                              <div style={{ position: 'absolute', bottom: 4, left: 6 }}>
+                                <Tag color="green" style={{ fontSize: 9, padding: '0 4px', margin: 0, fontWeight: 600 }}>
+                                  ✨ Đề xuất
+                                </Tag>
+                              </div>
+                            </div>
+                          }
+                          styles={{ body: { padding: '10px 12px', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' } }}
+                        >
+                          <div>
+                            <div
+                              onClick={() => { setSelectedProduct(recItem); setDetailModalVisible(true); }}
+                              style={{ fontWeight: 700, fontSize: 13, color: '#0f172a', lineHeight: 1.3, height: 34, overflow: 'hidden', cursor: 'pointer' }}
+                              title={recItem.name}
+                            >
+                              {recItem.name}
+                            </div>
+                            <div style={{ fontSize: 11, color: '#64748b', marginTop: 4 }}>
+                              <EnvironmentOutlined style={{ color: '#166534', marginRight: 3 }} />
+                              {recItem.producer?.location?.province || 'Việt Nam'}
+                            </div>
+                          </div>
+                          <div style={{ marginTop: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div style={{ fontWeight: 800, color: '#d32f2f', fontSize: 13 }}>
+                              {Number(recItem.price).toLocaleString('vi-VN')} đ
+                            </div>
+                            <Button
+                              size="small"
+                              type="primary"
+                              onClick={() => { setSelectedProduct(recItem); setDetailModalVisible(true); }}
+                              style={{ background: '#166534', borderColor: '#166534', fontSize: 11, borderRadius: 6, padding: '0 8px', height: 24 }}
+                            >
+                              Xem
+                            </Button>
+                          </div>
+                        </Card>
+                      </Col>
+                    ))}
+                  </Row>
+                </Card>
+
+                {/* ======================================================== */}
+                {/* PHẦN 2: DANH MỤC TẤT CẢ SẢN PHẨM OCOP (PAGINATED CATALOG) */}
+                {/* ======================================================== */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 8 }}>
+                  <div>
+                    <div style={{ fontSize: 18, fontWeight: 800, color: '#0f172a' }}>
+                      Tất Cả Đặc Sản OCOP ({filteredProducts.length})
+                    </div>
+                    <Text type="secondary" style={{ fontSize: 12 }}>
+                      Nông sản và đặc sản vùng miền đạt chuẩn OCOP quốc gia
+                    </Text>
+                  </div>
+                  {filteredProducts.length > 0 && (
+                    <Text type="secondary" style={{ fontSize: 12 }}>
+                      Trang <b>{currentPage}</b> / {Math.ceil(filteredProducts.length / pageSize) || 1} • Hiển thị {(currentPage - 1) * pageSize + 1} – {Math.min(currentPage * pageSize, filteredProducts.length)} đặc sản
+                    </Text>
+                  )}
+                </div>
+
+                {/* LƯỚI SẢN PHẨM PHÂN TRANG */}
+                {productsLoading ? (
+                  <div style={{ textAlign: 'center', padding: '80px 0' }}>
+                    <Spin size="large" description="Đang tải sản phẩm từ cơ sở dữ liệu..." />
+                  </div>
+                ) : filteredProducts.length === 0 ? (
+                  <Card style={{ textAlign: 'center', padding: '40px 0', borderRadius: 10 }}>
+                    <Empty
+                      description={
+                        <div>
+                          <div style={{ fontSize: 15, fontWeight: 600, color: '#334155', marginBottom: 6 }}>
+                            Không tìm thấy sản phẩm OCOP nào khớp với bộ lọc
+                          </div>
+                          <div style={{ fontSize: 13, color: '#64748b', marginBottom: 16 }}>
+                            Hãy thử chọn tỉnh thành khác hoặc mở rộng khoảng giá.
+                          </div>
+                          <Button type="primary" icon={<ClearOutlined />} onClick={handleResetFilters} style={{ background: '#166534', borderColor: '#166534' }}>
+                            Xóa tất cả bộ lọc
+                          </Button>
                         </div>
                       }
-                      styles={{ body: { flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: 16 } }}
-                    >
-                      <div>
-                        <Tag color="green" style={{ marginBottom: 6 }}>{item.category?.name}</Tag>
-                        <Title level={5} ellipsis={{ rows: 2 }}
-                          style={{ margin: '4px 0 8px', minHeight: 44 }}>{item.name}</Title>
-                        <Rate disabled value={item.ocopStarRating} style={{ fontSize: 13 }} />
-                        <Paragraph ellipsis={{ rows: 2 }} type="secondary"
-                          style={{ fontSize: 13, marginTop: 8 }}>{item.description}</Paragraph>
-                      </div>
-                      <div style={{ marginTop: 12 }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                          <Text strong style={{ fontSize: 18, color: '#d32f2f' }}>
-                            {Number(item.price).toLocaleString('vi-VN')} đ
-                          </Text>
-                          <Text type="secondary" style={{ fontSize: 12 }}>/{item.unit}</Text>
-                        </div>
-                        <div style={{ fontSize: 12, color: '#555', marginBottom: 12 }}>
-                          <EnvironmentOutlined style={{ color: '#1b5e20', marginRight: 4 }} />
-                          {item.producer?.location?.province || item.producer?.name || 'Việt Nam'}
-                        </div>
-                        <Space style={{ width: '100%' }}>
-                          <Button
-                            block
-                            onClick={() => { setSelectedProduct(item); setDetailModalVisible(true); }}
-                            style={{ borderRadius: 6 }}
+                    />
+                  </Card>
+                ) : (
+                  <>
+                    <Row gutter={[16, 16]}>
+                      {paginatedProducts.map((item) => (
+                        <Col xs={24} sm={12} md={12} lg={8} key={item.id}>
+                          <Card
+                            hoverable
+                            style={{ height: '100%', display: 'flex', flexDirection: 'column',
+                              borderRadius: 10, overflow: 'hidden' }}
+                            cover={
+                              <div style={{ height: 200, overflow: 'hidden', position: 'relative', background: '#e8f5e9' }}>
+                                <img
+                                  alt={item.name}
+                                  src={item.thumbnail}
+                                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                  onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1544787219-7f47ccb76574?w=400'; }}
+                                />
+                                <Tag
+                                  color={item.ocopStarRating === 5 ? 'gold' : 'blue'}
+                                  icon={<StarFilled />}
+                                  style={{ position: 'absolute', top: 10, right: 10, fontWeight: 'bold' }}
+                                >
+                                  OCOP {item.ocopStarRating}★
+                                </Tag>
+                                {item.ocopCertificate?.status === 'APPROVED' && (
+                                  <Tag
+                                    color="success"
+                                    icon={<SafetyCertificateOutlined />}
+                                    style={{
+                                      position: 'absolute',
+                                      top: 10,
+                                      left: 10,
+                                      fontWeight: 'bold',
+                                      background: 'rgba(255, 255, 255, 0.95)',
+                                      color: '#237804',
+                                      borderColor: '#b7eb8f',
+                                      boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                                    }}
+                                  >
+                                    ✓ Đã Thẩm Định
+                                  </Tag>
+                                )}
+                              </div>
+                            }
+                            styles={{ body: { flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: 16 } }}
                           >
-                            Chi tiết
-                          </Button>
-                          <Button
-                            type="primary"
-                            icon={<ShoppingCartOutlined />}
-                            disabled={item.stockQuantity <= 0}
-                            onClick={() => handleAddToCart(item)}
-                            style={{ background: item.stockQuantity <= 0 ? '#d9d9d9' : '#1b5e20', borderColor: '#1b5e20', borderRadius: 6 }}
-                            title="Thêm vào giỏ hàng"
-                          >
-                            {item.stockQuantity <= 0 ? 'Hết hàng' : 'Chọn mua'}
-                          </Button>
-                        </Space>
+                            <div>
+                              <Tag color="green" style={{ marginBottom: 6 }}>{item.category?.name}</Tag>
+                              <Title level={5} ellipsis={{ rows: 2 }}
+                                style={{ margin: '4px 0 8px', minHeight: 44 }}>{item.name}</Title>
+                              <Rate disabled value={item.ocopStarRating} style={{ fontSize: 13 }} />
+                              <Paragraph ellipsis={{ rows: 2 }} type="secondary"
+                                style={{ fontSize: 13, marginTop: 8 }}>{item.description}</Paragraph>
+                            </div>
+                            <div style={{ marginTop: 12 }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                                <Text strong style={{ fontSize: 18, color: '#d32f2f' }}>
+                                  {Number(item.price).toLocaleString('vi-VN')} đ
+                                </Text>
+                                <Text type="secondary" style={{ fontSize: 12 }}>/{item.unit}</Text>
+                              </div>
+                              <div style={{ fontSize: 12, color: '#555', marginBottom: 12 }}>
+                                <EnvironmentOutlined style={{ color: '#1b5e20', marginRight: 4 }} />
+                                {item.producer?.location?.province || item.producer?.name || 'Việt Nam'}
+                              </div>
+                              {isAdmin() ? (
+                                <Button
+                                  block
+                                  type="primary"
+                                  icon={<ShopOutlined />}
+                                  onClick={() => { setSelectedProduct(item); setDetailModalVisible(true); }}
+                                  style={{ borderRadius: 6, background: '#1b5e20', borderColor: '#1b5e20', fontWeight: 'bold' }}
+                                >
+                                  Xem chi tiết & Quản trị
+                                </Button>
+                              ) : (
+                                <Space style={{ width: '100%' }}>
+                                  <Button
+                                    block
+                                    onClick={() => { setSelectedProduct(item); setDetailModalVisible(true); }}
+                                    style={{ borderRadius: 6 }}
+                                  >
+                                    Chi tiết
+                                  </Button>
+                                  <Button
+                                    type="primary"
+                                    icon={<ShoppingCartOutlined />}
+                                    disabled={item.stockQuantity <= 0}
+                                    onClick={() => handleAddToCart(item)}
+                                    style={{ background: item.stockQuantity <= 0 ? '#d9d9d9' : '#1b5e20', borderColor: '#1b5e20', borderRadius: 6 }}
+                                    title="Thêm vào giỏ hàng"
+                                  >
+                                    {item.stockQuantity <= 0 ? 'Hết hàng' : 'Chọn mua'}
+                                  </Button>
+                                </Space>
+                              )}
+                            </div>
+                          </Card>
+                        </Col>
+                      ))}
+                    </Row>
+
+                    {/* ĐIỀU KHIỂN PHÂN TRANG */}
+                    {filteredProducts.length > 0 && (
+                      <div style={{ display: 'flex', justifyContent: 'center', marginTop: 36, padding: '16px 0' }}>
+                        <Pagination
+                          current={currentPage}
+                          pageSize={pageSize}
+                          total={filteredProducts.length}
+                          pageSizeOptions={['9', '12', '18', '24']}
+                          showSizeChanger
+                          showQuickJumper
+                          showTotal={(total, range) => `Hiển thị ${range[0]} - ${range[1]} trong ${total} sản phẩm OCOP`}
+                          onChange={(page, newPageSize) => {
+                            setCurrentPage(page);
+                            setPageSize(newPageSize);
+                            window.scrollTo({ top: 380, behavior: 'smooth' });
+                          }}
+                        />
                       </div>
-                    </Card>
-                  </Col>
-                ))}
-              </Row>
-            )}
+                    )}
+                  </>
+                )}
+              </Col>
+            </Row>
           </div>
         )}
 
@@ -681,7 +1238,7 @@ function App() {
                 </Button>
               </Space.Compact>
               <div style={{ marginTop: 8, fontSize: 12, color: '#888' }}>
-                💡 Gợi ý mã lô mẫu có sẵn: <code>BATCH-2026-FINHO-01</code> (Chè Shan Tuyết Fìn Hò)
+                💡 Gợi ý mã lô mẫu có sẵn trong hệ thống: <code style={{ cursor: 'pointer', color: '#1b5e20', fontWeight: 'bold' }} onClick={() => { setTraceBatchCode('BATCH-P001-20260408'); handleTraceLookup('BATCH-P001-20260408'); }}>BATCH-P001-20260408</code> (Kẹo dừa sữa béo Bến Tre), <code style={{ cursor: 'pointer', color: '#1b5e20', fontWeight: 'bold' }} onClick={() => { setTraceBatchCode('BATCH-P002-20260504'); handleTraceLookup('BATCH-P002-20260504'); }}>BATCH-P002-20260504</code> (Bánh phồng sữa sầu riêng)
               </div>
             </Card>
 
@@ -719,11 +1276,13 @@ function App() {
                     {/* THẺ SẢN PHẨM & TEM QR */}
                     <Card size="small" style={{ marginBottom: 16, background: '#f6ffed', borderColor: '#b7eb8f' }}>
                       <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
-                        <img
-                          src={traceResult.qrCodeUrl}
-                          alt="Tem QR"
-                          style={{ width: 100, height: 100, borderRadius: 6, border: '1px solid #d9d9d9', background: '#fff', padding: 4 }}
-                        />
+                        <div style={{ background: '#fff', padding: 6, borderRadius: 8, border: '1px solid #d9d9d9', display: 'inline-block' }}>
+                          <QRCode
+                            value={traceResult.qrCodeUrl || `${window.location.origin}/?trace=${traceResult.batchCode}`}
+                            size={100}
+                            bordered={false}
+                          />
+                        </div>
                         <div>
                           <div style={{ fontSize: 12, color: '#666' }}>Mã Lô Sản Xuất:</div>
                           <Tag color="blue" style={{ fontSize: 14, fontWeight: 'bold', margin: '4px 0' }}>
@@ -811,8 +1370,12 @@ function App() {
                                 <div style={{ fontSize: 11, color: '#777' }}>
                                   <div><b>Đơn vị / Người thực hiện:</b> {ev.actorName}</div>
                                   <div><b>Thời gian ghi nhận:</b> {ev.eventTimestamp}</div>
-                                  <div><b>SHA-256 Hash:</b> <code style={{ fontSize: 10 }}>{ev.rawDataHash}</code></div>
-                                  <div><b>Tx Hash:</b> <code style={{ fontSize: 10, color: '#722ed1' }}>{ev.blockchainTxHash}</code></div>
+                                  <div><b>SHA-256 Hash:</b> <code style={{ fontSize: 10 }}>{ev.rawDataHash || 'Đang cập nhật'}</code></div>
+                                  <div><b>Tx Hash:</b> {ev.blockchainTxHash ? (
+                                    <code style={{ fontSize: 10, color: '#722ed1' }}>{ev.blockchainTxHash}</code>
+                                  ) : (
+                                    <Tag color="orange" style={{ fontSize: 10, margin: 0 }}>Chờ ký số Blockchain</Tag>
+                                  )}</div>
                                 </div>
                               </Card>
                             ),
@@ -840,19 +1403,23 @@ function App() {
         <Modal
           open={detailModalVisible}
           onCancel={() => setDetailModalVisible(false)}
-          footer={[
-            <Button key="close" onClick={() => setDetailModalVisible(false)}>Đóng</Button>,
-            <Button
-              key="buy"
-              type="primary"
-              icon={<ShoppingCartOutlined />}
-              disabled={selectedProduct.stockQuantity <= 0}
-              style={{ background: '#1b5e20' }}
-              onClick={() => { handleAddToCart(selectedProduct); setDetailModalVisible(false); }}
-            >
-              {selectedProduct.stockQuantity <= 0 ? 'Tạm hết hàng' : `Thêm vào giỏ hàng (${Number(selectedProduct.price).toLocaleString('vi-VN')} đ)`}
-            </Button>
-          ]}
+          footer={
+            isAdmin()
+              ? [<Button key="close" type="primary" onClick={() => setDetailModalVisible(false)} style={{ background: '#1b5e20' }}>Đóng xem xét</Button>]
+              : [
+                  <Button key="close" onClick={() => setDetailModalVisible(false)}>Đóng</Button>,
+                  <Button
+                    key="buy"
+                    type="primary"
+                    icon={<ShoppingCartOutlined />}
+                    disabled={selectedProduct.stockQuantity <= 0}
+                    style={{ background: '#1b5e20' }}
+                    onClick={() => { handleAddToCart(selectedProduct); setDetailModalVisible(false); }}
+                  >
+                    {selectedProduct.stockQuantity <= 0 ? 'Tạm hết hàng' : `Thêm vào giỏ hàng (${Number(selectedProduct.price).toLocaleString('vi-VN')} đ)`}
+                  </Button>
+                ]
+          }
           width={640}
           title={<Space><SafetyCertificateOutlined style={{ color: '#1b5e20' }} /><b>{selectedProduct.name}</b></Space>}
         >
@@ -897,7 +1464,7 @@ function App() {
               </div>
               <div style={{ fontSize: 12, color: '#555', marginTop: 8 }}>
                 <div><b>Cơ quan cấp quyết định:</b> {selectedProduct.ocopCertificate.issuingAuthority}</div>
-                <div><b>Thời hạn hiệu lực:</b> {selectedProduct.ocopCertificate.expiryDate ? dayjs(selectedProduct.ocopCertificate.expiryDate).format('DD/MM/YYYY') : '—'}</div>
+                <div><b>Thời hạn hiệu lực:</b> {selectedProduct.ocopCertificate.expiryDate ? (dayjs(selectedProduct.ocopCertificate.expiryDate).isValid() ? dayjs(selectedProduct.ocopCertificate.expiryDate).format('DD/MM/YYYY') : String(selectedProduct.ocopCertificate.expiryDate)) : '—'}</div>
               </div>
             </Card>
           )}
@@ -959,8 +1526,20 @@ function App() {
         onCategoryChange={() => loadProducts(selectedStar, searchQuery)}
       />
 
-      {/* TRỢ LÝ AI CHATBOT OCOP */}
-      <ChatBotWidget onViewProduct={handleOpenProductDetailById} />
+      {/* TRUNG TÂM QUẢN TRỊ TOÀN SÀN DÀNH RIÊNG CHO ADMIN */}
+      <AdminDashboardModal
+        open={adminDashboardOpen}
+        onClose={() => setAdminDashboardOpen(false)}
+        onOpenCertificates={() => setAdminCertificatesModalOpen(true)}
+        onOpenUsers={() => setAdminUsersModalOpen(true)}
+        onOpenCategories={() => setAdminCategoriesModalOpen(true)}
+        onOpenOrders={() => setAdminOrdersModalOpen(true)}
+        onOpenProducts={() => setProducerProductsModalOpen(true)}
+        onOpenBatches={() => setProducerBatchesModalOpen(true)}
+      />
+
+      {/* TRỢ LÝ AI CHATBOT OCOP (Chỉ dành cho Khách hàng / Người mua sắm) */}
+      {!isAdmin() && <ChatBotWidget onViewProduct={handleOpenProductDetailById} />}
     </Layout>
   );
 }

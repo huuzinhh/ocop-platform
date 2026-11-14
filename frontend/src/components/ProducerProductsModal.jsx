@@ -18,7 +18,7 @@ const { Title, Text, Paragraph } = Typography;
 const { Search, TextArea } = Input;
 const { Option } = Select;
 
-const ProducerProductsModal = ({ open, onClose, onProductChange }) => {
+const ProducerProductsModal = ({ open, onClose, onProductChange, embedded = false }) => {
   const { currentUser, isProducer, isAdmin } = useAuth();
 
   const [loading, setLoading] = useState(false);
@@ -72,11 +72,11 @@ const ProducerProductsModal = ({ open, onClose, onProductChange }) => {
   };
 
   useEffect(() => {
-    if (open) {
+    if (open || embedded) {
       fetchCategories();
       fetchMyProducts();
     }
-  }, [open]);
+  }, [open, embedded]);
 
   // Statistics calculation
   const stats = useMemo(() => {
@@ -440,127 +440,170 @@ const ProducerProductsModal = ({ open, onClose, onProductChange }) => {
     },
   ];
 
-  return (
-    <>
-      <Modal
-        open={open}
-        onCancel={onClose}
-        footer={null}
-        width={1100}
-        centered
-        title={
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingRight: 32 }}>
+  const productContent = (
+    <div>
+      {embedded && (
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <Space>
-              <ShopOutlined style={{ color: '#1b5e20', fontSize: 24 }} />
+              <ShopOutlined style={{ color: '#166534', fontSize: 26 }} />
               <div>
-                <Title level={4} style={{ margin: 0, color: '#1b5e20' }}>
-                  {isAdmin() ? 'Quản Lý Danh Sách Toàn Bộ Sản Phẩm OCOP (Admin)' : 'Quản Lý Sản Phẩm, Giá & Tồn Kho Cơ Sở'}
+                <Title level={3} style={{ margin: 0, color: '#0f172a', fontWeight: 800 }}>
+                  {isAdmin() ? '🛍️ Quản Lý Toàn Bộ Sản Phẩm OCOP' : 'Quản Lý Sản Phẩm, Giá & Tồn Kho Cơ Sở'}
                 </Title>
-                <Text type="secondary" style={{ fontSize: 12 }}>
-                  Cơ sở: <b>{currentUser?.fullName}</b> ({currentUser?.username})
+                <Text type="secondary" style={{ fontSize: 13 }}>
+                  Theo dõi danh mục sản phẩm, xếp hạng sao OCOP, tồn kho và trạng thái mở bán
                 </Text>
               </div>
             </Space>
-            <Button
-              type="primary"
-              icon={<PlusCircleOutlined />}
-              onClick={handleOpenAddModal}
-              style={{ background: '#2e7d32', fontWeight: 'bold' }}
-            >
-              Đăng sản phẩm mới
-            </Button>
+            <Space>
+              <Button icon={<SyncOutlined spin={loading} />} onClick={fetchMyProducts}>
+                Làm mới
+              </Button>
+              <Button
+                type="primary"
+                icon={<PlusCircleOutlined />}
+                onClick={handleOpenAddModal}
+                style={{ background: '#166534', borderColor: '#166534', fontWeight: 'bold', borderRadius: 8 }}
+              >
+                Đăng sản phẩm mới
+              </Button>
+            </Space>
           </div>
-        }
-      >
-        {/* STATS OVERVIEW CARDS */}
-        <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
-          <Col span={6}>
-            <Card size="small" style={{ background: '#f6ffed', borderColor: '#b7eb8f' }}>
-              <div style={{ fontSize: 12, color: '#389e0d' }}>Tổng sản phẩm OCOP</div>
-              <div style={{ fontSize: 22, fontWeight: 'bold', color: '#135200' }}>{stats.total}</div>
-            </Card>
-          </Col>
-          <Col span={6}>
-            <Card size="small" style={{ background: '#e6f7ff', borderColor: '#91d5ff' }}>
-              <div style={{ fontSize: 12, color: '#096dd9' }}>Đang mở bán (ACTIVE)</div>
-              <div style={{ fontSize: 22, fontWeight: 'bold', color: '#003a8c' }}>{stats.active}</div>
-            </Card>
-          </Col>
-          <Col span={6}>
-            <Card size="small" style={{ background: '#f9f0ff', borderColor: '#d3adf7' }}>
-              <div style={{ fontSize: 12, color: '#722ed1' }}>Tổng số lượng tồn kho</div>
-              <div style={{ fontSize: 22, fontWeight: 'bold', color: '#391085' }}>{stats.totalStock.toLocaleString('vi-VN')}</div>
-            </Card>
-          </Col>
-          <Col span={6}>
-            <Card size="small" style={{ background: stats.lowStock > 0 ? '#fff1f0' : '#f6ffed', borderColor: stats.lowStock > 0 ? '#ffa39e' : '#b7eb8f' }}>
-              <div style={{ fontSize: 12, color: stats.lowStock > 0 ? '#cf1322' : '#389e0d' }}>Cảnh báo sắp hết / hết hàng</div>
-              <div style={{ fontSize: 22, fontWeight: 'bold', color: stats.lowStock > 0 ? '#a8071a' : '#135200' }}>{stats.lowStock}</div>
-            </Card>
-          </Col>
-        </Row>
-
-        {/* SEARCH & FILTERS BAR */}
-        <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
-          <Search
-            placeholder="Tìm theo tên đặc sản hoặc mã chứng nhận..."
-            allowClear
-            value={searchText}
-            onChange={(e) => setSearchText(e.target.value)}
-            style={{ width: 280 }}
-            prefix={<SearchOutlined />}
-          />
-
-          <Select
-            placeholder="Hạng sao OCOP"
-            style={{ width: 160 }}
-            allowClear
-            value={selectedStar}
-            onChange={setSelectedStar}
-          >
-            <Option value={5}>⭐⭐⭐⭐⭐ 5 Sao</Option>
-            <Option value={4}>⭐⭐⭐⭐ 4 Sao</Option>
-            <Option value={3}>⭐⭐⭐ 3 Sao</Option>
-          </Select>
-
-          <Select
-            placeholder="Danh mục"
-            style={{ width: 180 }}
-            allowClear
-            value={selectedCategory}
-            onChange={setSelectedCategory}
-          >
-            {categories.map(c => (
-              <Option key={c.id} value={c.id}>{c.name}</Option>
-            ))}
-          </Select>
-
-          <Select
-            placeholder="Trạng thái"
-            style={{ width: 140 }}
-            allowClear
-            value={selectedStatus}
-            onChange={setSelectedStatus}
-          >
-            <Option value="ACTIVE">Đang mở bán</Option>
-            <Option value="INACTIVE">Tạm dừng bán</Option>
-          </Select>
-
-          <Button icon={<SyncOutlined spin={loading} />} onClick={fetchMyProducts}>
-            Làm mới
-          </Button>
         </div>
+      )}
 
-        {/* MAIN DATA TABLE */}
+      {/* STATS OVERVIEW CARDS */}
+      <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
+        <Col span={6}>
+          <Card size="small" style={{ background: '#f6ffed', borderColor: '#b7eb8f' }}>
+            <div style={{ fontSize: 12, color: '#389e0d' }}>Tổng sản phẩm OCOP</div>
+            <div style={{ fontSize: 22, fontWeight: 'bold', color: '#135200' }}>{stats.total}</div>
+          </Card>
+        </Col>
+        <Col span={6}>
+          <Card size="small" style={{ background: '#e6f7ff', borderColor: '#91d5ff' }}>
+            <div style={{ fontSize: 12, color: '#096dd9' }}>Đang mở bán (ACTIVE)</div>
+            <div style={{ fontSize: 22, fontWeight: 'bold', color: '#003a8c' }}>{stats.active}</div>
+          </Card>
+        </Col>
+        <Col span={6}>
+          <Card size="small" style={{ background: '#f9f0ff', borderColor: '#d3adf7' }}>
+            <div style={{ fontSize: 12, color: '#722ed1' }}>Tổng số lượng tồn kho</div>
+            <div style={{ fontSize: 22, fontWeight: 'bold', color: '#391085' }}>{stats.totalStock.toLocaleString('vi-VN')}</div>
+          </Card>
+        </Col>
+        <Col span={6}>
+          <Card size="small" style={{ background: stats.lowStock > 0 ? '#fff1f0' : '#f6ffed', borderColor: stats.lowStock > 0 ? '#ffa39e' : '#b7eb8f' }}>
+            <div style={{ fontSize: 12, color: stats.lowStock > 0 ? '#cf1322' : '#389e0d' }}>Cảnh báo sắp hết / hết hàng</div>
+            <div style={{ fontSize: 22, fontWeight: 'bold', color: stats.lowStock > 0 ? '#a8071a' : '#135200' }}>{stats.lowStock}</div>
+          </Card>
+        </Col>
+      </Row>
+
+      {/* SEARCH & FILTERS BAR */}
+      <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
+        <Search
+          placeholder="Tìm theo tên đặc sản hoặc mã chứng nhận..."
+          allowClear
+          value={searchText}
+          onChange={(e) => setSearchText(e.target.value)}
+          style={{ width: 280 }}
+          prefix={<SearchOutlined />}
+        />
+
+        <Select
+          placeholder="Hạng sao OCOP"
+          style={{ width: 160 }}
+          allowClear
+          value={selectedStar}
+          onChange={setSelectedStar}
+        >
+          <Option value={5}>⭐⭐⭐⭐⭐ 5 Sao</Option>
+          <Option value={4}>⭐⭐⭐⭐ 4 Sao</Option>
+          <Option value={3}>⭐⭐⭐ 3 Sao</Option>
+        </Select>
+
+        <Select
+          placeholder="Danh mục"
+          style={{ width: 180 }}
+          allowClear
+          value={selectedCategory}
+          onChange={setSelectedCategory}
+        >
+          {categories.map(c => (
+            <Option key={c.id} value={c.id}>{c.name}</Option>
+          ))}
+        </Select>
+
+        <Select
+          placeholder="Trạng thái"
+          style={{ width: 140 }}
+          allowClear
+          value={selectedStatus}
+          onChange={setSelectedStatus}
+        >
+          <Option value="ACTIVE">Đang mở bán</Option>
+          <Option value="INACTIVE">Tạm dừng bán</Option>
+        </Select>
+
+        <Button icon={<SyncOutlined spin={loading} />} onClick={fetchMyProducts}>
+          Làm mới
+        </Button>
+      </div>
+
+      {/* MAIN DATA TABLE */}
+      <Card bordered={embedded} style={{ borderRadius: 12, boxShadow: embedded ? '0 1px 3px rgba(0,0,0,0.04)' : 'none' }}>
         <Table
           dataSource={filteredProducts}
           columns={columns}
           rowKey="id"
           loading={loading}
-          pagination={{ pageSize: 6, showTotal: (total) => `Tổng cộng ${total} sản phẩm` }}
+          pagination={{ pageSize: 8, showTotal: (total) => `Tổng cộng ${total} sản phẩm` }}
           locale={{ emptyText: <Empty description="Chưa có sản phẩm nào thuộc gian hàng này. Hãy bấm 'Đăng sản phẩm mới'!" /> }}
         />
-      </Modal>
+      </Card>
+    </div>
+  );
+
+  return (
+    <>
+      {embedded ? (
+        productContent
+      ) : (
+        <Modal
+          open={open}
+          onCancel={onClose}
+          footer={null}
+          width={1100}
+          centered
+          title={
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingRight: 32 }}>
+              <Space>
+                <ShopOutlined style={{ color: '#1b5e20', fontSize: 24 }} />
+                <div>
+                  <Title level={4} style={{ margin: 0, color: '#1b5e20' }}>
+                    {isAdmin() ? 'Quản Lý Danh Sách Toàn Bộ Sản Phẩm OCOP (Admin)' : 'Quản Lý Sản Phẩm, Giá & Tồn Kho Cơ Sở'}
+                  </Title>
+                  <Text type="secondary" style={{ fontSize: 12 }}>
+                    Cơ sở: <b>{currentUser?.fullName}</b> ({currentUser?.username})
+                  </Text>
+                </div>
+              </Space>
+              <Button
+                type="primary"
+                icon={<PlusCircleOutlined />}
+                onClick={handleOpenAddModal}
+                style={{ background: '#2e7d32', fontWeight: 'bold' }}
+              >
+                Đăng sản phẩm mới
+              </Button>
+            </div>
+          }
+        >
+          {productContent}
+        </Modal>
+      )}
 
       {/* QUICK EDIT PRICE & STOCK MODAL */}
       <Modal

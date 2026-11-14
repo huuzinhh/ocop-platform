@@ -102,20 +102,26 @@ public class ProductController {
             list = productService.getAllProducts();
         }
 
-        // Giới hạn tối đa 6 sản phẩm tiêu biểu nhất để AI đọc cực nhanh và phản hồi tức thì
+        // Giới hạn tối đa 4 sản phẩm tiêu biểu nhất để AI đọc cực nhanh và phản hồi tức thì
         List<AiProductDto> dtoList = list.stream()
-                .limit(6)
-                .map(p -> new AiProductDto(
-                p.getId(),
-                p.getName(),
-                p.getPrice(),
-                p.getUnit(),
-                p.getOcopStarRating(),
-                p.getProducer() != null ? p.getProducer().getName() : "N/A",
-                (p.getProducer() != null && p.getProducer().getLocation() != null)
-                        ? p.getProducer().getLocation().getProvince() : "N/A",
-                p.getCulturalStory()
-        )).toList();
+                .limit(4)
+                .map(p -> {
+                    String story = p.getCulturalStory();
+                    if (story != null && story.length() > 220) {
+                        story = story.substring(0, 220) + "...";
+                    }
+                    return new AiProductDto(
+                        p.getId(),
+                        p.getName(),
+                        p.getPrice(),
+                        p.getUnit(),
+                        p.getOcopStarRating(),
+                        p.getProducer() != null ? p.getProducer().getName() : "N/A",
+                        (p.getProducer() != null && p.getProducer().getLocation() != null)
+                                ? p.getProducer().getLocation().getProvince() : "N/A",
+                        story
+                    );
+                }).toList();
 
         return ApiResponse.ok(dtoList, "Tra cứu dữ liệu sản phẩm cho AI thành công");
     }

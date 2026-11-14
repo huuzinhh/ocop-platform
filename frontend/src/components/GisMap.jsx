@@ -682,21 +682,23 @@ const GisMap = ({ onSelectProduct }) => {
                                 Xem
                               </Button>
                             )}
-                            <Button
-                              size="small"
-                              type="primary"
-                              icon={<ShoppingCartOutlined />}
-                              style={{ background: '#ffd54f', color: '#1b5e20', borderColor: '#ffd54f', fontWeight: 'bold' }}
-                              onClick={() => {
-                                if (!isLoggedIn) {
-                                  message.info('Vui lòng đăng nhập để mua đặc sản OCOP');
-                                  return;
-                                }
-                                addToCart(item.id, 1);
-                              }}
-                            >
-                              Mua ngay
-                            </Button>
+                            {!isAdmin() && (
+                              <Button
+                                size="small"
+                                type="primary"
+                                icon={<ShoppingCartOutlined />}
+                                style={{ background: '#ffd54f', color: '#1b5e20', borderColor: '#ffd54f', fontWeight: 'bold' }}
+                                onClick={() => {
+                                  if (!isLoggedIn) {
+                                    message.info('Vui lòng đăng nhập để mua đặc sản OCOP');
+                                    return;
+                                  }
+                                  addToCart(item.id, 1);
+                                }}
+                              >
+                                Mua ngay
+                              </Button>
+                            )}
                           </Space>
                         </div>
                       </Col>

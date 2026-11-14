@@ -16,7 +16,7 @@ const { Text, Title } = Typography;
 const { Search } = Input;
 const { Option } = Select;
 
-export default function AdminUsersModal({ open, onClose }) {
+export default function AdminUsersModal({ open, onClose, embedded = false }) {
   const { currentUser } = useAuth();
   const [loading, setLoading] = useState(false);
   const [users, setUsers] = useState([]);
@@ -49,10 +49,10 @@ export default function AdminUsersModal({ open, onClose }) {
   };
 
   useEffect(() => {
-    if (open) {
+    if (open || embedded) {
       fetchData();
     }
-  }, [open, roleFilter, statusFilter]);
+  }, [open, embedded, roleFilter, statusFilter]);
 
   const handleSearch = () => {
     fetchData();
@@ -238,34 +238,26 @@ export default function AdminUsersModal({ open, onClose }) {
     },
   ];
 
-  return (
-    <Modal
-      open={open}
-      onCancel={onClose}
-      width={1150}
-      footer={[
-        <Button key="refresh" icon={<ReloadOutlined />} onClick={fetchData} loading={loading}>
-          Làm mới
-        </Button>,
-        <Button key="close" type="primary" onClick={onClose} style={{ background: '#1b5e20' }}>
-          Đóng
-        </Button>,
-      ]}
-      title={
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <UserOutlined style={{ fontSize: 22, color: '#1890ff' }} />
-          <div>
-            <div style={{ fontSize: 17, fontWeight: 'bold', color: '#1b5e20' }}>
-              Quản Lý Người Dùng & Cơ Sở Sản Xuất OCOP
+  const modalContent = (
+    <div>
+      {embedded && (
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <Title level={3} style={{ margin: 0, color: '#0f172a', fontWeight: 800 }}>
+                👥 Quản Lý Người Dùng & Cơ Sở Sản Xuất OCOP
+              </Title>
+              <Text type="secondary" style={{ fontSize: 13 }}>
+                Kiểm soát tài khoản, phân quyền, phê duyệt tích xanh HTX và bảo mật hệ thống
+              </Text>
             </div>
-            <div style={{ fontSize: 12, color: '#666', fontWeight: 'normal' }}>
-              Kiểm soát tài khoản, phân quyền, phê duyệt tích xanh HTX và bảo mật hệ thống
-            </div>
+            <Button icon={<ReloadOutlined spin={loading} />} onClick={fetchData} type="primary" style={{ background: '#166534', borderColor: '#166534', borderRadius: 8 }}>
+              Làm mới dữ liệu
+            </Button>
           </div>
         </div>
-      }
-      styles={{ body: { padding: '16px 24px' } }}
-    >
+      )}
+
       {/* 4 THẺ THỐNG KÊ */}
       <Row gutter={[16, 16]} style={{ marginBottom: 18 }}>
         <Col xs={12} sm={6}>
@@ -346,15 +338,53 @@ export default function AdminUsersModal({ open, onClose }) {
       </div>
 
       {/* BẢNG NGƯỜI DÙNG */}
-      <Table
-        columns={columns}
-        dataSource={users}
-        rowKey="id"
-        loading={loading}
-        pagination={{ pageSize: 7, showTotal: (t) => `Tổng cộng ${t} người dùng` }}
-        size="middle"
-        locale={{ emptyText: <Empty description="Không tìm thấy người dùng phù hợp" /> }}
-      />
+      <Card bordered={embedded} style={{ borderRadius: 12, boxShadow: embedded ? '0 1px 3px rgba(0,0,0,0.04)' : 'none' }}>
+        <Table
+          columns={columns}
+          dataSource={users}
+          rowKey="id"
+          loading={loading}
+          pagination={{ pageSize: 8, showTotal: (t) => `Tổng cộng ${t} người dùng` }}
+          size="middle"
+          locale={{ emptyText: <Empty description="Không tìm thấy người dùng phù hợp" /> }}
+        />
+      </Card>
+    </div>
+  );
+
+  if (embedded) {
+    return modalContent;
+  }
+
+  return (
+    <Modal
+      open={open}
+      onCancel={onClose}
+      width={1150}
+      footer={[
+        <Button key="refresh" icon={<ReloadOutlined />} onClick={fetchData} loading={loading}>
+          Làm mới
+        </Button>,
+        <Button key="close" type="primary" onClick={onClose} style={{ background: '#1b5e20' }}>
+          Đóng
+        </Button>,
+      ]}
+      title={
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <UserOutlined style={{ fontSize: 22, color: '#1890ff' }} />
+          <div>
+            <div style={{ fontSize: 17, fontWeight: 'bold', color: '#1b5e20' }}>
+              Quản Lý Người Dùng & Cơ Sở Sản Xuất OCOP
+            </div>
+            <div style={{ fontSize: 12, color: '#666', fontWeight: 'normal' }}>
+              Kiểm soát tài khoản, phân quyền, phê duyệt tích xanh HTX và bảo mật hệ thống
+            </div>
+          </div>
+        </div>
+      }
+      styles={{ body: { padding: '16px 24px' } }}
+    >
+      {modalContent}
     </Modal>
   );
 }

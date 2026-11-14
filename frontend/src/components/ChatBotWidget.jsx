@@ -92,6 +92,7 @@ const renderProductCard = (prod, key, onViewProduct) => {
   return (
     <div
       key={`prod-${key}-${prod.id}`}
+      onClick={() => onViewProduct && onViewProduct(prodId)}
       style={{
         margin: '10px 0',
         padding: '10px 12px',
@@ -101,7 +102,17 @@ const renderProductCard = (prod, key, onViewProduct) => {
         boxShadow: '0 3px 10px rgba(27,94,32,0.08)',
         display: 'flex',
         flexDirection: 'column',
-        gap: 6
+        gap: 6,
+        cursor: 'pointer',
+        transition: 'all 0.2s ease'
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.borderColor = '#52c41a';
+        e.currentTarget.style.background = '#f6ffed';
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.borderColor = '#b7eb8f';
+        e.currentTarget.style.background = '#ffffff';
       }}
     >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 6 }}>
@@ -132,7 +143,10 @@ const renderProductCard = (prod, key, onViewProduct) => {
           type="primary"
           size="small"
           icon={<EyeOutlined />}
-          onClick={() => onViewProduct && onViewProduct(prodId)}
+          onClick={(e) => {
+            e.stopPropagation();
+            onViewProduct && onViewProduct(prodId);
+          }}
           style={{
             background: '#1b5e20',
             borderColor: '#1b5e20',
@@ -199,7 +213,13 @@ const renderBotMessage = (text, onViewProduct) => {
 };
 
 const ChatBotWidget = ({ onViewProduct }) => {
-  const { currentUser, isLoggedIn } = useAuth();
+  const { currentUser, isLoggedIn, isAdmin } = useAuth();
+
+  // Không hiển thị chatbot cho Admin (chỉ phục vụ khách hàng / người mua hàng)
+  if (isAdmin && isAdmin()) {
+    return null;
+  }
+
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([
     {
@@ -252,7 +272,7 @@ const ChatBotWidget = ({ onViewProduct }) => {
           userFullName: currentUser?.fullName || 'Khách'
         },
         {
-          timeout: 25000,
+          timeout: 90000,
           headers: { 'Content-Type': 'application/json' }
         }
       );
@@ -280,7 +300,9 @@ const ChatBotWidget = ({ onViewProduct }) => {
     } catch (err) {
       console.error('Lỗi kết nối n8n AI:', err);
       let errorHelp = 'Không thể kết nối đến Trợ lý AI (n8n Webhook).';
-      if (err.code === 'ERR_NETWORK' || err.message?.includes('Network Error')) {
+      if (err.code === 'ECONNABORTED' || err.message?.includes('timeout')) {
+        errorHelp = '⏳ Trợ lý AI đang xử lý lượng dữ liệu lớn và phản hồi chậm hơn thường lệ. Bạn vui lòng thử bấm gửi lại hoặc đặt câu hỏi ngắn gọn hơn một chút nhé!';
+      } else if (err.code === 'ERR_NETWORK' || err.message?.includes('Network Error')) {
         errorHelp += '\n\n💡 Vui lòng đảm bảo container n8n đang chạy và webhook đã được kích hoạt tại: ' + N8N_WEBHOOK_URL;
       } else if (err.response?.status === 404) {
         errorHelp += '\n\n💡 Webhook chưa được kích hoạt hoặc URL không đúng.';

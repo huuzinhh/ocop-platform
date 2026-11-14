@@ -28,7 +28,7 @@ const getStatusBadge = (status) => {
   }
 };
 
-const AdminOrdersModal = ({ open, onClose }) => {
+const AdminOrdersModal = ({ open, onClose, embedded = false }) => {
   const { currentUser, isAdmin, isProducer } = useAuth();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -52,10 +52,10 @@ const AdminOrdersModal = ({ open, onClose }) => {
   };
 
   useEffect(() => {
-    if (open) {
+    if (open || embedded) {
       fetchOrders();
     }
-  }, [open]);
+  }, [open, embedded]);
 
   const handleStatusChange = async (orderCode, newStatus) => {
     setUpdatingCode(orderCode);
@@ -72,40 +72,26 @@ const AdminOrdersModal = ({ open, onClose }) => {
     }
   };
 
-  return (
-    <Modal
-      open={open}
-      onCancel={onClose}
-      footer={[
-        <Button key="refresh" icon={<SyncOutlined />} onClick={fetchOrders}>
-          Làm mới
-        </Button>,
-        <Button key="close" type="primary" style={{ background: '#1b5e20' }} onClick={onClose}>
-          Đóng
-        </Button>
-      ]}
-      width={800}
-      centered
-      title={
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingRight: 24 }}>
-          <Space>
-            {isAdmin() ? (
-              <CrownOutlined style={{ color: '#d32f2f', fontSize: 20 }} />
-            ) : (
-              <ShopOutlined style={{ color: '#1b5e20', fontSize: 20 }} />
-            )}
-            <Title level={4} style={{ margin: 0, color: '#1b5e20' }}>
-              {isAdmin() ? 'Quản Lý Toàn Bộ Đơn Hàng Hệ Thống' : 'Quản Lý Đơn Hàng Của Nhà Sản Xuất'} ({orders.length})
-            </Title>
-          </Space>
-          {isAdmin() ? (
-            <Tag color="red">Toàn hệ thống</Tag>
-          ) : (
-            <Tag color="blue"><ShopOutlined /> {currentUser?.fullName}</Tag>
-          )}
+  const orderContent = (
+    <div>
+      {embedded && (
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <Title level={3} style={{ margin: 0, color: '#0f172a', fontWeight: 800 }}>
+                📦 Quản Lý Toàn Bộ Đơn Hàng Hệ Thống
+              </Title>
+              <Text type="secondary" style={{ fontSize: 13 }}>
+                Theo dõi tình trạng đơn, điều phối giao hàng và cập nhật trạng thái đơn toàn sàn OCOP ({orders.length} đơn)
+              </Text>
+            </div>
+            <Button icon={<SyncOutlined spin={loading} />} onClick={fetchOrders} type="primary" style={{ background: '#166534', borderColor: '#166534', borderRadius: 8 }}>
+              Làm mới dữ liệu
+            </Button>
+          </div>
         </div>
-      }
-    >
+      )}
+
       {loading ? (
         <div style={{ textAlign: 'center', padding: '60px 0' }}>
           <Spin size="large" tip={isAdmin() ? "Đang tải toàn bộ đơn hàng..." : "Đang tải đơn hàng của cơ sở..."} />
@@ -122,11 +108,12 @@ const AdminOrdersModal = ({ open, onClose }) => {
       ) : (
         <List
           dataSource={orders}
+          pagination={{ pageSize: embedded ? 6 : 4, showTotal: (total) => `Tổng cộng ${total} đơn hàng` }}
           renderItem={(order) => (
             <Card
               size="small"
               key={order.id}
-              style={{ marginBottom: 16, borderRadius: 8, border: '1px solid #d9d9d9' }}
+              style={{ marginBottom: 16, borderRadius: 8, border: '1px solid #d9d9d9', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}
               title={
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <Space>
@@ -207,6 +194,48 @@ const AdminOrdersModal = ({ open, onClose }) => {
           )}
         />
       )}
+    </div>
+  );
+
+  if (embedded) {
+    return orderContent;
+  }
+
+  return (
+    <Modal
+      open={open}
+      onCancel={onClose}
+      footer={[
+        <Button key="refresh" icon={<SyncOutlined />} onClick={fetchOrders}>
+          Làm mới
+        </Button>,
+        <Button key="close" type="primary" style={{ background: '#1b5e20' }} onClick={onClose}>
+          Đóng
+        </Button>
+      ]}
+      width={800}
+      centered
+      title={
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingRight: 24 }}>
+          <Space>
+            {isAdmin() ? (
+              <CrownOutlined style={{ color: '#d32f2f', fontSize: 20 }} />
+            ) : (
+              <ShopOutlined style={{ color: '#1b5e20', fontSize: 20 }} />
+            )}
+            <Title level={4} style={{ margin: 0, color: '#1b5e20' }}>
+              {isAdmin() ? 'Quản Lý Toàn Bộ Đơn Hàng Hệ Thống' : 'Quản Lý Đơn Hàng Của Nhà Sản Xuất'} ({orders.length})
+            </Title>
+          </Space>
+          {isAdmin() ? (
+            <Tag color="red">Toàn hệ thống</Tag>
+          ) : (
+            <Tag color="blue"><ShopOutlined /> {currentUser?.fullName}</Tag>
+          )}
+        </div>
+      }
+    >
+      {orderContent}
     </Modal>
   );
 };

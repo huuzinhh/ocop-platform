@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   Modal, Table, Button, Space, Tag, Typography, Input, InputNumber,
   Select, Card, Row, Col, Popconfirm, Tooltip, DatePicker,
-  message, Empty, Spin, Alert, Form, Badge, Divider, Timeline, Image, Drawer
+  message, Empty, Spin, Alert, Form, Badge, Divider, Timeline, Image, Drawer, QRCode
 } from 'antd';
 import {
   QrcodeOutlined, PlusCircleOutlined, SyncOutlined, SafetyCertificateOutlined,
@@ -36,7 +36,7 @@ const getEventTypeBadge = (type) => {
   }
 };
 
-const ProducerBatchesModal = ({ open, onClose }) => {
+const ProducerBatchesModal = ({ open, onClose, embedded = false }) => {
   const { currentUser, isProducer, isAdmin } = useAuth();
 
   const [loading, setLoading] = useState(false);
@@ -90,11 +90,11 @@ const ProducerBatchesModal = ({ open, onClose }) => {
   };
 
   useEffect(() => {
-    if (open) {
+    if (open || embedded) {
       fetchBatches();
       fetchProducts();
     }
-  }, [open]);
+  }, [open, embedded]);
 
   // Load events for a batch
   const handleOpenEventsDrawer = async (batch) => {
@@ -177,15 +177,16 @@ const ProducerBatchesModal = ({ open, onClose }) => {
       width: 240,
       render: (_, record) => (
         <Space size="middle" align="center">
-          <Image
-            src={record.qrCodeUrl}
-            alt={record.batchCode}
-            width={56}
-            height={56}
-            preview={false}
-            style={{ borderRadius: 6, border: '1px solid #d9d9d9', cursor: 'pointer' }}
+          <div 
             onClick={() => { setSelectedBatchForQr(record); setQrModalOpen(true); }}
-          />
+            style={{ cursor: 'pointer', background: '#fff', padding: 4, borderRadius: 6, border: '1px solid #d9d9d9', display: 'inline-block' }}
+          >
+            <QRCode
+              value={record.qrCodeUrl || `${window.location.origin}/?trace=${record.batchCode}`}
+              size={52}
+              bordered={false}
+            />
+          </div>
           <div>
             <div style={{ fontWeight: 'bold', fontSize: 13, color: '#1b5e20' }}>
               {record.batchCode}
@@ -289,53 +290,57 @@ const ProducerBatchesModal = ({ open, onClose }) => {
     },
   ];
 
-  return (
-    <>
-      <Modal
-        open={open}
-        onCancel={onClose}
-        footer={null}
-        width={1150}
-        centered
-        title={
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingRight: 32 }}>
+  const batchContent = (
+    <div>
+      {embedded && (
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <Space>
-              <QrcodeOutlined style={{ color: '#1b5e20', fontSize: 24 }} />
+              <QrcodeOutlined style={{ color: '#166534', fontSize: 26 }} />
               <div>
-                <Title level={4} style={{ margin: 0, color: '#1b5e20' }}>
-                  Quản Lý Lô Sản Xuất, Nhật Ký Chuỗi Cung Ứng & Mã QR Truy Xuất
+                <Title level={3} style={{ margin: 0, color: '#0f172a', fontWeight: 800 }}>
+                  🔍 Quản Lý Lô Sản Xuất & Mã QR Truy Xuất Nguồn Gốc
                 </Title>
-                <Text type="secondary" style={{ fontSize: 12 }}>
-                  Cơ sở: <b>{currentUser?.fullName}</b> — Bảo chứng toàn vẹn bằng SHA-256 & Smart Contract Blockchain
+                <Text type="secondary" style={{ fontSize: 13 }}>
+                  Khởi tạo lô hàng, cấp phát mã QR Blockchain, lưu vết nhật ký canh tác và đóng gói
                 </Text>
               </div>
             </Space>
-            <Button
-              type="primary"
-              icon={<PlusCircleOutlined />}
-              onClick={() => {
-                batchForm.resetFields();
-                batchForm.setFieldsValue({
-                  manufactureDate: dayjs(),
-                  expiryDate: dayjs().add(2, 'year'),
-                  quantity: 500,
-                });
-                setCreateBatchOpen(true);
-              }}
-              style={{ background: '#2e7d32', fontWeight: 'bold' }}
-            >
-              Tạo lô sản xuất mới
-            </Button>
+            <Space>
+              <Button icon={<SyncOutlined spin={loading} />} onClick={fetchBatches}>
+                Làm mới
+              </Button>
+              <Button
+                type="primary"
+                icon={<PlusCircleOutlined />}
+                onClick={() => {
+                  batchForm.resetFields();
+                  batchForm.setFieldsValue({
+                    manufactureDate: dayjs(),
+                    expiryDate: dayjs().add(2, 'year'),
+                    quantity: 500,
+                  });
+                  setCreateBatchOpen(true);
+                }}
+                style={{ background: '#166534', borderColor: '#166534', fontWeight: 'bold', borderRadius: 8 }}
+              >
+                Tạo lô sản xuất mới
+              </Button>
+            </Space>
           </div>
-        }
-      >
+        </div>
+      )}
+
+      <Card bordered={embedded} style={{ borderRadius: 12, boxShadow: embedded ? '0 1px 3px rgba(0,0,0,0.04)' : 'none' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16, alignItems: 'center' }}>
           <Text type="secondary">
             Tìm thấy <b>{batches.length}</b> lô sản xuất đã đăng ký tem truy xuất nguồn gốc.
           </Text>
-          <Button icon={<SyncOutlined spin={loading} />} onClick={fetchBatches}>
-            Làm mới
-          </Button>
+          {!embedded && (
+            <Button icon={<SyncOutlined spin={loading} />} onClick={fetchBatches}>
+              Làm mới
+            </Button>
+          )}
         </div>
 
         <Table
@@ -343,10 +348,59 @@ const ProducerBatchesModal = ({ open, onClose }) => {
           columns={columns}
           rowKey="id"
           loading={loading}
-          pagination={{ pageSize: 5 }}
+          pagination={{ pageSize: 8 }}
           locale={{ emptyText: <Empty description="Chưa có lô sản xuất nào. Hãy nhấn 'Tạo lô sản xuất mới' để phát hành tem QR truy xuất!" /> }}
         />
-      </Modal>
+      </Card>
+    </div>
+  );
+
+  return (
+    <>
+      {embedded ? (
+        batchContent
+      ) : (
+        <Modal
+          open={open}
+          onCancel={onClose}
+          footer={null}
+          width={1150}
+          centered
+          title={
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingRight: 32 }}>
+              <Space>
+                <QrcodeOutlined style={{ color: '#1b5e20', fontSize: 24 }} />
+                <div>
+                  <Title level={4} style={{ margin: 0, color: '#1b5e20' }}>
+                    Quản Lý Lô Sản Xuất, Nhật Ký Chuỗi Cung Ứng & Mã QR Truy Xuất
+                  </Title>
+                  <Text type="secondary" style={{ fontSize: 12 }}>
+                    Cơ sở: <b>{currentUser?.fullName}</b> — Bảo chứng toàn vẹn bằng SHA-256 & Smart Contract Blockchain
+                  </Text>
+                </div>
+              </Space>
+              <Button
+                type="primary"
+                icon={<PlusCircleOutlined />}
+                onClick={() => {
+                  batchForm.resetFields();
+                  batchForm.setFieldsValue({
+                    manufactureDate: dayjs(),
+                    expiryDate: dayjs().add(2, 'year'),
+                    quantity: 500,
+                  });
+                  setCreateBatchOpen(true);
+                }}
+                style={{ background: '#2e7d32', fontWeight: 'bold' }}
+              >
+                Tạo lô sản xuất mới
+              </Button>
+            </div>
+          }
+        >
+          {batchContent}
+        </Modal>
+      )}
 
       {/* MODAL TẠO LÔ SẢN XUẤT MỚI */}
       <Modal
@@ -508,8 +562,12 @@ const ProducerBatchesModal = ({ open, onClose }) => {
                     <div style={{ fontSize: 11, color: '#777' }}>
                       <div><b>Người thực hiện:</b> {ev.actorName}</div>
                       <div><b>Thời gian:</b> {dayjs(ev.eventTimestamp).format('DD/MM/YYYY HH:mm:ss')}</div>
-                      <div><b>Mã băm SHA-256:</b> <code style={{ fontSize: 10 }}>{ev.rawDataHash}</code></div>
-                      <div><b>Blockchain Tx:</b> <code style={{ fontSize: 10, color: '#722ed1' }}>{ev.blockchainTxHash}</code></div>
+                      <div><b>Mã băm SHA-256:</b> <code style={{ fontSize: 10 }}>{ev.rawDataHash || 'Đang cập nhật'}</code></div>
+                      <div><b>Blockchain Tx:</b> {ev.blockchainTxHash ? (
+                        <code style={{ fontSize: 10, color: '#722ed1' }}>{ev.blockchainTxHash}</code>
+                      ) : (
+                        <Tag color="orange" style={{ fontSize: 10, margin: 0 }}>Chờ ký số Blockchain</Tag>
+                      )}</div>
                     </div>
                   </Card>
                 ),
@@ -628,10 +686,10 @@ const ProducerBatchesModal = ({ open, onClose }) => {
               Chứng nhận OCOP {selectedBatchForQr.product?.ocopStarRating} Sao
             </Tag>
             <div style={{ padding: 12, background: '#fff', display: 'inline-block', borderRadius: 8, border: '2px dashed #b7eb8f', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-              <img
-                src={selectedBatchForQr.qrCodeUrl}
-                alt="QR Code"
-                style={{ width: 220, height: 220, display: 'block' }}
+              <QRCode
+                value={selectedBatchForQr.qrCodeUrl || `${window.location.origin}/?trace=${selectedBatchForQr.batchCode}`}
+                size={220}
+                bordered={false}
               />
             </div>
             <div style={{ marginTop: 12, fontSize: 14, fontWeight: 'bold' }}>

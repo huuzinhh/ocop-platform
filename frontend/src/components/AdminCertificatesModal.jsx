@@ -14,7 +14,7 @@ import adminApi from '../api/adminApi';
 const { Text, Title, Paragraph } = Typography;
 const { TextArea } = Input;
 
-export default function AdminCertificatesModal({ open, onClose, onCertUpdated }) {
+export default function AdminCertificatesModal({ open, onClose, onCertUpdated, embedded = false }) {
   const [loading, setLoading] = useState(false);
   const [certificates, setCertificates] = useState([]);
   const [stats, setStats] = useState({ total: 0, pending: 0, approved: 0, rejected: 0, expired: 0 });
@@ -52,10 +52,10 @@ export default function AdminCertificatesModal({ open, onClose, onCertUpdated })
   };
 
   useEffect(() => {
-    if (open) {
+    if (open || embedded) {
       fetchData();
     }
-  }, [open, statusFilter]);
+  }, [open, embedded, statusFilter]);
 
   // Handle Approve Certificate
   const handleApprove = async (record) => {
@@ -295,115 +295,145 @@ export default function AdminCertificatesModal({ open, onClose, onCertUpdated })
     },
   ];
 
-  return (
-    <>
-      <Modal
-        open={open}
-        onCancel={onClose}
-        width={1180}
-        footer={[
-          <Button key="refresh" icon={<ReloadOutlined />} onClick={fetchData} loading={loading}>
-            Làm mới
-          </Button>,
-          <Button key="close" type="primary" onClick={onClose} style={{ background: '#1b5e20' }}>
-            Đóng
-          </Button>,
-        ]}
-        title={
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <SafetyCertificateOutlined style={{ fontSize: 24, color: '#52c41a' }} />
+  const certContent = (
+    <div>
+      {embedded && (
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
-              <div style={{ fontSize: 17, fontWeight: 'bold', color: '#1b5e20' }}>
-                Hội Đồng Thẩm Định & Phê Duyệt Chứng Nhận OCOP
-              </div>
-              <div style={{ fontSize: 12, color: '#666', fontWeight: 'normal' }}>
+              <Title level={3} style={{ margin: 0, color: '#0f172a', fontWeight: 800 }}>
+                📜 Hội Đồng Thẩm Định & Phê Duyệt Chứng Nhận OCOP
+              </Title>
+              <Text type="secondary" style={{ fontSize: 13 }}>
                 Cơ chế đối soát tính minh bạch, tính pháp lý của chứng nhận OCOP 3★ – 5★ trước khi gắn nhãn chính thức
-              </div>
+              </Text>
             </div>
+            <Button icon={<ReloadOutlined spin={loading} />} onClick={fetchData} type="primary" style={{ background: '#166534', borderColor: '#166534', borderRadius: 8 }}>
+              Làm mới dữ liệu
+            </Button>
           </div>
-        }
-        styles={{ body: { padding: '16px 24px' } }}
-      >
-        {/* THỐNG KÊ NHANH 4 THẺ */}
-        <Row gutter={[16, 16]} style={{ marginBottom: 18 }}>
-          <Col xs={12} sm={6}>
-            <Card size="small" style={{ borderRadius: 8, background: '#f6ffed', border: '1px solid #b7eb8f' }}>
-              <Text type="secondary" style={{ fontSize: 12 }}>Tổng Hồ Sơ</Text>
-              <Title level={3} style={{ margin: '4px 0 0 0', color: '#1b5e20' }}>
-                {stats.total}
-              </Title>
-            </Card>
-          </Col>
-          <Col xs={12} sm={6}>
-            <Card
-              size="small"
-              style={{
-                borderRadius: 8,
-                background: stats.pending > 0 ? '#fffbe6' : '#fafafa',
-                border: stats.pending > 0 ? '1px solid #ffe58f' : '1px solid #d9d9d9',
-              }}
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Text type="secondary" style={{ fontSize: 12 }}>Chờ Thẩm Định</Text>
-                {stats.pending > 0 && <Badge count={stats.pending} style={{ backgroundColor: '#fa8c16' }} />}
-              </div>
-              <Title level={3} style={{ margin: '4px 0 0 0', color: '#fa8c16' }}>
-                {stats.pending}
-              </Title>
-            </Card>
-          </Col>
-          <Col xs={12} sm={6}>
-            <Card size="small" style={{ borderRadius: 8, background: '#f6ffed', border: '1px solid #b7eb8f' }}>
-              <Text type="secondary" style={{ fontSize: 12 }}>Đã Cấp Tích Xanh</Text>
-              <Title level={3} style={{ margin: '4px 0 0 0', color: '#52c41a' }}>
-                {stats.approved}
-              </Title>
-            </Card>
-          </Col>
-          <Col xs={12} sm={6}>
-            <Card size="small" style={{ borderRadius: 8, background: '#fff1f0', border: '1px solid #ffa39e' }}>
-              <Text type="secondary" style={{ fontSize: 12 }}>Bị Từ Chối / Hết Hạn</Text>
-              <Title level={3} style={{ margin: '4px 0 0 0', color: '#cf1322' }}>
-                {stats.rejected + stats.expired}
-              </Title>
-            </Card>
-          </Col>
-        </Row>
-
-        {/* BỘ LỌC TRẠNG THÁI */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-          <Radio.Group
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            buttonStyle="solid"
-          >
-            <Radio.Button value="ALL">Tất cả ({stats.total})</Radio.Button>
-            <Radio.Button value="PENDING">
-              <Badge count={stats.pending} size="small" offset={[6, -2]}>
-                Chờ duyệt
-              </Badge>
-            </Radio.Button>
-            <Radio.Button value="APPROVED">Đã phê duyệt ({stats.approved})</Radio.Button>
-            <Radio.Button value="REJECTED">Từ chối ({stats.rejected})</Radio.Button>
-            <Radio.Button value="EXPIRED">Đã hết hạn ({stats.expired})</Radio.Button>
-          </Radio.Group>
-
-          <Text type="secondary" style={{ fontSize: 12 }}>
-            Hiển thị <b>{certificates.length}</b> hồ sơ
-          </Text>
         </div>
+      )}
 
-        {/* BẢNG HỒ SƠ CHỨNG NHẬN */}
+      {/* THỐNG KÊ NHANH 4 THẺ */}
+      <Row gutter={[16, 16]} style={{ marginBottom: 18 }}>
+        <Col xs={12} sm={6}>
+          <Card size="small" style={{ borderRadius: 8, background: '#f6ffed', border: '1px solid #b7eb8f' }}>
+            <Text type="secondary" style={{ fontSize: 12 }}>Tổng Hồ Sơ</Text>
+            <Title level={3} style={{ margin: '4px 0 0 0', color: '#1b5e20' }}>
+              {stats.total}
+            </Title>
+          </Card>
+        </Col>
+        <Col xs={12} sm={6}>
+          <Card
+            size="small"
+            style={{
+              borderRadius: 8,
+              background: stats.pending > 0 ? '#fffbe6' : '#fafafa',
+              border: stats.pending > 0 ? '1px solid #ffe58f' : '1px solid #d9d9d9',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Text type="secondary" style={{ fontSize: 12 }}>Chờ Thẩm Định</Text>
+              {stats.pending > 0 && <Badge count={stats.pending} style={{ backgroundColor: '#fa8c16' }} />}
+            </div>
+            <Title level={3} style={{ margin: '4px 0 0 0', color: '#fa8c16' }}>
+              {stats.pending}
+            </Title>
+          </Card>
+        </Col>
+        <Col xs={12} sm={6}>
+          <Card size="small" style={{ borderRadius: 8, background: '#f6ffed', border: '1px solid #b7eb8f' }}>
+            <Text type="secondary" style={{ fontSize: 12 }}>Đã Cấp Tích Xanh</Text>
+            <Title level={3} style={{ margin: '4px 0 0 0', color: '#52c41a' }}>
+              {stats.approved}
+            </Title>
+          </Card>
+        </Col>
+        <Col xs={12} sm={6}>
+          <Card size="small" style={{ borderRadius: 8, background: '#fff1f0', border: '1px solid #ffa39e' }}>
+            <Text type="secondary" style={{ fontSize: 12 }}>Bị Từ Chối / Hết Hạn</Text>
+            <Title level={3} style={{ margin: '4px 0 0 0', color: '#cf1322' }}>
+              {stats.rejected + stats.expired}
+            </Title>
+          </Card>
+        </Col>
+      </Row>
+
+      {/* BỘ LỌC TRẠNG THÁI */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+        <Radio.Group
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+          buttonStyle="solid"
+        >
+          <Radio.Button value="ALL">Tất cả ({stats.total})</Radio.Button>
+          <Radio.Button value="PENDING">
+            <Badge count={stats.pending} size="small" offset={[6, -2]}>
+              Chờ duyệt
+            </Badge>
+          </Radio.Button>
+          <Radio.Button value="APPROVED">Đã phê duyệt ({stats.approved})</Radio.Button>
+          <Radio.Button value="REJECTED">Từ chối ({stats.rejected})</Radio.Button>
+          <Radio.Button value="EXPIRED">Đã hết hạn ({stats.expired})</Radio.Button>
+        </Radio.Group>
+
+        <Text type="secondary" style={{ fontSize: 12 }}>
+          Hiển thị <b>{certificates.length}</b> hồ sơ
+        </Text>
+      </div>
+
+      {/* BẢNG HỒ SƠ CHỨNG NHẬN */}
+      <Card bordered={embedded} style={{ borderRadius: 12, boxShadow: embedded ? '0 1px 3px rgba(0,0,0,0.04)' : 'none' }}>
         <Table
           columns={columns}
           dataSource={certificates}
           rowKey="certificateId"
           loading={loading}
-          pagination={{ pageSize: 6, showTotal: (total) => `Tổng cộng ${total} hồ sơ` }}
+          pagination={{ pageSize: embedded ? 8 : 6, showTotal: (total) => `Tổng cộng ${total} hồ sơ` }}
           size="middle"
           locale={{ emptyText: <Empty description="Không có hồ sơ chứng nhận nào phù hợp" /> }}
         />
-      </Modal>
+      </Card>
+    </div>
+  );
+
+  return (
+    <>
+      {embedded ? (
+        certContent
+      ) : (
+        <Modal
+          open={open}
+          onCancel={onClose}
+          width={1180}
+          footer={[
+            <Button key="refresh" icon={<ReloadOutlined />} onClick={fetchData} loading={loading}>
+              Làm mới
+            </Button>,
+            <Button key="close" type="primary" onClick={onClose} style={{ background: '#1b5e20' }}>
+              Đóng
+            </Button>,
+          ]}
+          title={
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <SafetyCertificateOutlined style={{ fontSize: 24, color: '#52c41a' }} />
+              <div>
+                <div style={{ fontSize: 17, fontWeight: 'bold', color: '#1b5e20' }}>
+                  Hội Đồng Thẩm Định & Phê Duyệt Chứng Nhận OCOP
+                </div>
+                <div style={{ fontSize: 12, color: '#666', fontWeight: 'normal' }}>
+                  Cơ chế đối soát tính minh bạch, tính pháp lý của chứng nhận OCOP 3★ – 5★ trước khi gắn nhãn chính thức
+                </div>
+              </div>
+            </div>
+          }
+          styles={{ body: { padding: '16px 24px' } }}
+        >
+          {certContent}
+        </Modal>
+      )}
 
       {/* MODAL TỪ CHỐI HỒ SƠ */}
       <Modal

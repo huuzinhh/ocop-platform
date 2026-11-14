@@ -12,7 +12,7 @@ import adminApi from '../api/adminApi';
 const { Text, Title, Paragraph } = Typography;
 const { TextArea } = Input;
 
-export default function AdminCategoriesModal({ open, onClose, onCategoryChange }) {
+export default function AdminCategoriesModal({ open, onClose, onCategoryChange, embedded = false }) {
   const [loading, setLoading] = useState(false);
   const [categories, setCategories] = useState([]);
   
@@ -37,10 +37,10 @@ export default function AdminCategoriesModal({ open, onClose, onCategoryChange }
   };
 
   useEffect(() => {
-    if (open) {
+    if (open || embedded) {
       fetchCategories();
     }
-  }, [open]);
+  }, [open, embedded]);
 
   // Open Create Modal
   const handleOpenCreate = () => {
@@ -200,66 +200,58 @@ export default function AdminCategoriesModal({ open, onClose, onCategoryChange }
     },
   ];
 
-  return (
-    <>
-      <Modal
-        open={open}
-        onCancel={onClose}
-        width={1000}
-        footer={[
-          <Button key="refresh" icon={<ReloadOutlined />} onClick={fetchCategories} loading={loading}>
-            Làm mới
-          </Button>,
-          <Button key="close" type="primary" onClick={onClose} style={{ background: '#1b5e20' }}>
-            Đóng
-          </Button>,
-        ]}
-        title={
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingRight: 24 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <AppstoreOutlined style={{ fontSize: 22, color: '#1b5e20' }} />
-              <div>
-                <div style={{ fontSize: 17, fontWeight: 'bold', color: '#1b5e20' }}>
-                  Quản Lý Danh Mục Ngành Hàng OCOP Chuẩn Quốc Gia
-                </div>
-                <div style={{ fontSize: 12, color: '#666', fontWeight: 'normal' }}>
-                  6 nhóm ngành hàng OCOP theo Quyết định số 919/QĐ-TTg của Thủ tướng Chính phủ
-                </div>
-              </div>
+  const categoryContent = (
+    <div>
+      {embedded && (
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <Title level={3} style={{ margin: 0, color: '#0f172a', fontWeight: 800 }}>
+                🏷️ Quản Lý Danh Mục Ngành Hàng OCOP Chuẩn Quốc Gia
+              </Title>
+              <Text type="secondary" style={{ fontSize: 13 }}>
+                6 nhóm ngành hàng OCOP theo Quyết định số 919/QĐ-TTg của Thủ tướng Chính phủ
+              </Text>
             </div>
-            <Button
-              type="primary"
-              icon={<PlusCircleOutlined />}
-              onClick={handleOpenCreate}
-              style={{ background: '#1b5e20', fontWeight: 'bold' }}
-            >
-              + Thêm Ngành Hàng
-            </Button>
+            <Space>
+              <Button icon={<ReloadOutlined spin={loading} />} onClick={fetchCategories}>
+                Làm mới
+              </Button>
+              <Button
+                type="primary"
+                icon={<PlusCircleOutlined />}
+                onClick={handleOpenCreate}
+                style={{ background: '#166534', borderColor: '#166534', fontWeight: 'bold' }}
+              >
+                + Thêm Ngành Hàng
+              </Button>
+            </Space>
           </div>
-        }
-        styles={{ body: { padding: '16px 24px' } }}
-      >
-        {/* KPI NHANH */}
-        <Row gutter={[16, 16]} style={{ marginBottom: 18 }}>
-          <Col span={12}>
-            <Card size="small" style={{ borderRadius: 8, background: '#f6ffed', border: '1px solid #b7eb8f' }}>
-              <Text type="secondary" style={{ fontSize: 12 }}>Tổng Số Nhóm Ngành OCOP</Text>
-              <Title level={3} style={{ margin: '4px 0 0 0', color: '#1b5e20' }}>
-                {categories.length} Nhóm ngành
-              </Title>
-            </Card>
-          </Col>
-          <Col span={12}>
-            <Card size="small" style={{ borderRadius: 8, background: '#e6f7ff', border: '1px solid #91d5ff' }}>
-              <Text type="secondary" style={{ fontSize: 12 }}>Tổng Sản Phẩm Đang Phân Loại</Text>
-              <Title level={3} style={{ margin: '4px 0 0 0', color: '#096dd9' }}>
-                {totalProductsAcrossCategories} Sản phẩm
-              </Title>
-            </Card>
-          </Col>
-        </Row>
+        </div>
+      )}
 
-        {/* BẢNG DANH MỤC */}
+      {/* KPI NHANH */}
+      <Row gutter={[16, 16]} style={{ marginBottom: 18 }}>
+        <Col span={12}>
+          <Card size="small" style={{ borderRadius: 8, background: '#f6ffed', border: '1px solid #b7eb8f' }}>
+            <Text type="secondary" style={{ fontSize: 12 }}>Tổng Số Nhóm Ngành OCOP</Text>
+            <Title level={3} style={{ margin: '4px 0 0 0', color: '#1b5e20' }}>
+              {categories.length} Nhóm ngành
+            </Title>
+          </Card>
+        </Col>
+        <Col span={12}>
+          <Card size="small" style={{ borderRadius: 8, background: '#e6f7ff', border: '1px solid #91d5ff' }}>
+            <Text type="secondary" style={{ fontSize: 12 }}>Tổng Sản Phẩm Đang Phân Loại</Text>
+            <Title level={3} style={{ margin: '4px 0 0 0', color: '#096dd9' }}>
+              {totalProductsAcrossCategories} Sản phẩm
+            </Title>
+          </Card>
+        </Col>
+      </Row>
+
+      {/* BẢNG DANH MỤC */}
+      <Card bordered={embedded} style={{ borderRadius: 12, boxShadow: embedded ? '0 1px 3px rgba(0,0,0,0.04)' : 'none' }}>
         <Table
           columns={columns}
           dataSource={categories}
@@ -269,7 +261,55 @@ export default function AdminCategoriesModal({ open, onClose, onCategoryChange }
           size="middle"
           locale={{ emptyText: <Empty description="Chưa có danh mục ngành hàng nào" /> }}
         />
-      </Modal>
+      </Card>
+    </div>
+  );
+
+  return (
+    <>
+      {embedded ? (
+        categoryContent
+      ) : (
+        <Modal
+          open={open}
+          onCancel={onClose}
+          width={1000}
+          footer={[
+            <Button key="refresh" icon={<ReloadOutlined />} onClick={fetchCategories} loading={loading}>
+              Làm mới
+            </Button>,
+            <Button key="close" type="primary" onClick={onClose} style={{ background: '#1b5e20' }}>
+              Đóng
+            </Button>,
+          ]}
+          title={
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingRight: 24 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <AppstoreOutlined style={{ fontSize: 22, color: '#1b5e20' }} />
+                <div>
+                  <div style={{ fontSize: 17, fontWeight: 'bold', color: '#1b5e20' }}>
+                    Quản Lý Danh Mục Ngành Hàng OCOP Chuẩn Quốc Gia
+                  </div>
+                  <div style={{ fontSize: 12, color: '#666', fontWeight: 'normal' }}>
+                    6 nhóm ngành hàng OCOP theo Quyết định số 919/QĐ-TTg của Thủ tướng Chính phủ
+                  </div>
+                </div>
+              </div>
+              <Button
+                type="primary"
+                icon={<PlusCircleOutlined />}
+                onClick={handleOpenCreate}
+                style={{ background: '#1b5e20', fontWeight: 'bold' }}
+              >
+                + Thêm Ngành Hàng
+              </Button>
+            </div>
+          }
+          styles={{ body: { padding: '16px 24px' } }}
+        >
+          {categoryContent}
+        </Modal>
+      )}
 
       {/* MODAL THÊM / SỬA DANH MỤC */}
       <Modal
